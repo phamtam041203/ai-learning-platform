@@ -1,0 +1,53 @@
+# ===== Machine Learning Core =====
+numpy==1.26.3
+pandas==2.1.4
+scikit-learn==1.4.0
+scipy==1.11.4
+
+# ===== Deep Learning =====
+torch==2.1.2
+transformers==4.36.2
+sentence-transformers==2.2.2
+tokenizers==0.15.0
+
+# ===== Recommendation Systems =====
+implicit==0.7.2
+surprise==0.1
+
+# ===== Gradient Boosting =====
+xgboost==2.0.3
+lightgbm==4.2.0
+catboost==1.2.2
+
+# ===== Vietnamese NLP =====
+underthesea==6.7.0
+vncorenlp==1.0.3
+pyvi==0.1.1
+
+# ===== Model Serving & Optimization =====
+onnx==1.15.0
+onnxruntime==1.16.3
+
+# ===== Data Visualization =====
+matplotlib==3.8.2
+seaborn==0.13.1
+plotly==5.18.0
+
+# ===== Feature Engineering =====
+category-encoders==2.6.3
+imbalanced-learn==0.11.0
+
+# ===== Model Tracking =====
+mlflow==2.9.2
+
+# ===== Hyperparameter Tuning =====
+optuna==3.5.0
+
+# ===== Text Processing =====
+nltk==3.8.1
+spacy==3.7.2
+gensim==4.3.2
+
+# ===== Utilities =====
+joblib==1.3.2
+tqdm==4.66.1

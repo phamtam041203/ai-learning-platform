@@ -1,0 +1,82 @@
+{
+  "program": "Công nghệ phần mềm",
+  "specialization_code": "CNPM",
+  "phases": [
+    {
+      "id": 1,
+      "key": "foundation",
+      "name": "Giai đoạn 1: Cơ sở ngành",
+      "description": "Hoàn thành các môn cơ sở ngành trước khi học chuyên sâu.",
+      "required_courses": ["IT101", "PR101", "PR102", "NET101", "DSA101", "MATH101"],
+      "elective_courses": [],
+      "elective_min_select": 0
+    },
+    {
+      "id": 2,
+      "key": "core",
+      "name": "Giai đoạn 2: Nền tảng chuyên ngành",
+      "description": "Hoàn thành các môn nền tảng bắt buộc.",
+      "required_courses": ["DB101", "OOP101", "WEB101"],
+      "elective_courses": [],
+      "elective_min_select": 0
+    },
+    {
+      "id": 3,
+      "key": "specialization",
+      "name": "Giai đoạn 3: Chuyên ngành CNPM",
+      "description": "Học phần chuyên sâu công nghệ phần mềm.",
+      "required_courses": ["SE101", "RE101", "TEST101"],
+      "elective_courses": ["EL201", "EL202", "EL203", "EL204", "EL205", "EL206", "EL207", "SAD101"],
+      "elective_min_select": 2
+    },
+    {
+      "id": 4,
+      "key": "advanced",
+      "name": "Giai đoạn 4: Nâng cao",
+      "description": "Học phần nâng cao trước khi tốt nghiệp.",
+      "required_courses": ["WEB201", "SEPM101", "PROJ101"],
+      "elective_courses": ["ADV201", "ADV202", "ADV203", "ADV204"],
+      "elective_min_select": 2
+    },
+    {
+      "id": 5,
+      "key": "capstone",
+      "name": "Giai đoạn 5: Tốt nghiệp",
+      "description": "Học phần cuối cùng sau khi hoàn tất các môn bắt buộc và tự chọn.",
+      "required_courses": ["INTERN401", "GRAD401"],
+      "elective_courses": [],
+      "elective_min_select": 0
+    }
+  ],
+  "course_details": {
+    "IT101": {"name": "Nhập môn Công nghệ thông tin", "credit_hours": 3},
+    "PR101": {"name": "Cơ sở lập trình", "credit_hours": 3},
+    "PR102": {"name": "Kỹ thuật lập trình", "credit_hours": 3},
+    "NET101": {"name": "Nhập môn Mạng máy tính và điện toán đám mây", "credit_hours": 3},
+    "DSA101": {"name": "Cấu trúc dữ liệu và giải thuật", "credit_hours": 3},
+    "MATH101": {"name": "Toán rời rạc", "credit_hours": 3},
+    "DB101": {"name": "Cơ sở dữ liệu", "credit_hours": 3},
+    "OOP101": {"name": "Lập trình hướng đối tượng", "credit_hours": 3},
+    "WEB101": {"name": "Lập trình ứng dụng Web", "credit_hours": 3},
+    "EL201": {"name": "Hệ Quản trị Cơ sở dữ liệu", "credit_hours": 3},
+    "EL202": {"name": "Lập trình ứng dụng Java", "credit_hours": 3},
+    "EL203": {"name": "An ninh Mạng máy tính", "credit_hours": 3},
+    "EL204": {"name": "Quản lý Dự án CNTT", "credit_hours": 3},
+    "EL205": {"name": "Thiết kế giao diện người dùng", "credit_hours": 3},
+    "EL206": {"name": "Lập trình ứng dụng di động", "credit_hours": 3},
+    "EL207": {"name": "Quản lý và phát triển các hệ thống thông tin", "credit_hours": 3},
+    "SE101": {"name": "Nhập môn Công nghệ phần mềm", "credit_hours": 3},
+    "RE101": {"name": "Kỹ thuật lấy yêu cầu", "credit_hours": 3},
+    "TEST101": {"name": "Kiểm thử phần mềm", "credit_hours": 3},
+    "SAD101": {"name": "Phân tích và thiết kế hệ thống theo Hướng đối tượng", "credit_hours": 3},
+    "WEB201": {"name": "Lập trình Web nâng cao", "credit_hours": 3},
+    "SEPM101": {"name": "Quản lý dự án phần mềm", "credit_hours": 3},
+    "PROJ101": {"name": "Đồ án môn học", "credit_hours": 3},
+    "ADV201": {"name": "Trí tuệ nhân tạo", "credit_hours": 3},
+    "ADV202": {"name": "Machine Learning cơ bản", "credit_hours": 3},
+    "ADV203": {"name": "DevOps và CI/CD", "credit_hours": 3},
+    "ADV204": {"name": "Điện toán đám mây", "credit_hours": 3},
+    "INTERN401": {"name": "Đồ án thực tập", "credit_hours": 4},
+    "GRAD401": {"name": "Khoá luận tốt nghiệp hoặc chuyên đề tốt nghiệp", "credit_hours": 6}
+  }
+}

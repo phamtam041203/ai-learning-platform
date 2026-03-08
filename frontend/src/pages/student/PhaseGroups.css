@@ -1,0 +1,185 @@
+/* ===== PHASE GROUP STYLES (for Browse Courses) ===== */
+.phases-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1.5rem;
+}
+
+.phase-group {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.phase-group:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.phase-group .phase-header {
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.phase-group .phase-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.phase-group .phase-description {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.course-type-section {
+  padding: 2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.course-type-section:last-child {
+  border-bottom: none;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid;
+}
+
+.section-header.required {
+  border-color: #3b82f6;
+}
+
+.section-header.elective {
+  border-color: #f59e0b;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-title h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.section-header.required .section-title {
+  color: #3b82f6;
+}
+
+.section-header.elective .section-title {
+  color: #f59e0b;
+}
+
+.requirement-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.requirement-badge.required {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.requirement-badge.elective {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Dark mode for phase groups */
+[data-theme="dark"] .phase-group {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .phase-group .phase-header {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, transparent 100%);
+}
+
+[data-theme="dark"] .section-header.required {
+  border-color: #60a5fa;
+}
+
+[data-theme="dark"] .section-header.elective {
+  border-color: #fbbf24;
+}
+
+[data-theme="dark"] .requirement-badge.required {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+[data-theme="dark"] .requirement-badge.elective {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+/* Responsive for phase groups */
+@media (max-width: 768px) {
+  .phases-container {
+    padding: 1rem;
+  }
+
+  .phase-group .phase-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .phase-group .phase-title {
+    font-size: 1.25rem;
+  }
+
+  .course-type-section {
+    padding: 1.5rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .course-type-section .courses-container.grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .phase-group .phase-title {
+    font-size: 1.1rem;
+  }
+
+  .section-title h3 {
+    font-size: 1rem;
+  }
+
+  .requirement-badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+  }
+}

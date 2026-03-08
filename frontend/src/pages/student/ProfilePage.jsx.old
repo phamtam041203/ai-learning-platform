@@ -1,0 +1,407 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authAPI, studentAPI } from '../../services/api';
+import { User, Mail, GraduationCap, BookOpen, Clock, Award, TrendingUp, Edit2, Save, X } from 'lucide-react';
+import './ProfilePage.css';
+
+const ProfilePage = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [statistics, setStatistics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({});
+  const [saveMessage, setSaveMessage] = useState('');
+
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  const fetchProfileData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch user data and statistics in parallel
+      const [userData, statsData] = await Promise.all([
+        authAPI.getCurrentUser(),
+        studentAPI.getStatistics().catch(() => null) // Don't fail if stats unavailable
+      ]);
+      
+      setUser(userData);
+      setStatistics(statsData);
+      setEditedData({
+        full_name: userData.full_name || '',
+        email: userData.email || ''
+      });
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError(err.message || 'Không thể tải thông tin profile');
+      
+      // Fallback to localStorage
+      const localUser = localStorage.getItem('user');
+      if (localUser) {
+        try {
+          const userData = JSON.parse(localUser);
+          setUser(userData);
+          setEditedData({
+            full_name: userData.full_name || userData.name || '',
+            email: userData.email || ''
+          });
+        } catch (e) {
+          console.error('Error parsing local user data:', e);
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setSaveMessage('');
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedData({
+      full_name: user.full_name || '',
+      email: user.email || ''
+    });
+    setSaveMessage('');
+  };
+
+  const handleSave = async () => {
+    try {
+      // TODO: Implement update profile API call when available
+      // await authAPI.updateProfile(editedData);
+      
+      // For now, update local state and localStorage
+      const updatedUser = { ...user, ...editedData };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      setIsEditing(false);
+      setSaveMessage('✅ Đã lưu thay đổi');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      setSaveMessage('❌ Lỗi khi lưu thay đổi');
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditedData(prev => ({ ...prev, [field]: value }));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải thông tin...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md">
+          <div className="text-red-600 text-center mb-4">
+            <X className="w-12 h-12 mx-auto mb-2" />
+            <h2 className="text-xl font-semibold">Không thể tải profile</h2>
+          </div>
+          <p className="text-gray-600 text-center mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/student/dashboard')}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+          >
+            Quay lại Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="profile-page-container">
+      {/* Cover Background */}
+      <div className="profile-cover-section">
+        <div className="cover-gradient"></div>
+      </div>
+
+      <div className="profile-content-wrapper">
+        {/* Header with Avatar */}
+        <div className="profile-header-section">
+          <div className="profile-avatar-wrapper">
+            <div className="profile-avatar-large">
+              {user?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <button className="avatar-edit-btn" title="Thay đổi ảnh đại diện">
+              <Edit2 className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="profile-header-info">
+            <h1 className="profile-name">{user?.full_name || 'Chưa cập nhật'}</h1>
+            <p className="profile-email">{user?.email || 'N/A'}</p>
+            <div className="profile-badges">
+              <span className="badge badge-primary">
+                <GraduationCap className="w-4 h-4" />
+                {user?.role || 'student'}
+              </span>
+              {user?.specialization && (
+                <span className="badge badge-secondary">
+                  <BookOpen className="w-4 h-4" />
+                  {user.specialization}
+                </span>
+              )}
+            </div>
+          </div>
+          {!isEditing ? (
+            <button onClick={handleEdit} className="btn-edit-profile">
+              <Edit2 className="w-5 h-5" />
+              Chỉnh sửa Profile
+            </button>
+          ) : (
+            <div className="edit-actions">
+              <button onClick={handleSave} className="btn-save">
+                <Save className="w-4 h-4" />
+                Lưu
+              </button>
+              <button onClick={handleCancel} className="btn-cancel">
+                <X className="w-4 h-4" />
+                Hủy
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Save Message */}
+        {saveMessage && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center gap-2">
+            {saveMessage}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Profile Info */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Basic Info Card */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Thông Tin Cơ Bản</h2>
+                {!isEditing ? (
+                  <button
+                    onClick={handleEdit}
+                    className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Chỉnh sửa
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSave}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      <Save className="w-4 h-4" />
+                      Lưu
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      <X className="w-4 h-4" />
+                      Hủy
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-6">
+                {/* Avatar */}
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                    {user?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Avatar</p>
+                    <button className="text-sm text-blue-600 hover:underline mt-1">
+                      Thay đổi ảnh đại diện
+                    </button>
+                  </div>
+                </div>
+
+                {/* Full Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <User className="w-4 h-4 inline mr-2" />
+                    Họ và tên
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedData.full_name}
+                      onChange={(e) => handleInputChange('full_name', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-lg text-gray-900">{user?.full_name || 'Chưa cập nhật'}</p>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Mail className="w-4 h-4 inline mr-2" />
+                    Email
+                  </label>
+                  <p className="text-lg text-gray-900">{user?.email || 'N/A'}</p>
+                  <p className="text-xs text-gray-500 mt-1">Email không thể thay đổi</p>
+                </div>
+
+                {/* Role */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <GraduationCap className="w-4 h-4 inline mr-2" />
+                    Vai trò
+                  </label>
+                  <p className="text-lg text-gray-900 capitalize">{user?.role || 'student'}</p>
+                </div>
+
+                {/* Specialization */}
+                {user?.specialization && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <BookOpen className="w-4 h-4 inline mr-2" />
+                      Chuyên ngành
+                    </label>
+                    <p className="text-lg text-gray-900">{user.specialization}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Academic Performance Card */}
+            {statistics && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">Kết Quả Học Tập</h2>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Total Courses */}
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-600 mb-2">
+                      <BookOpen className="w-5 h-5" />
+                      <span className="text-sm font-medium">Tổng khóa học</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {statistics.overview?.total_courses || 0}
+                    </p>
+                  </div>
+
+                  {/* Completed */}
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-600 mb-2">
+                      <Award className="w-5 h-5" />
+                      <span className="text-sm font-medium">Hoàn thành</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {statistics.overview?.completed_courses || 0}
+                    </p>
+                  </div>
+
+                  {/* Study Time */}
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-purple-600 mb-2">
+                      <Clock className="w-5 h-5" />
+                      <span className="text-sm font-medium">Thời gian học</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {statistics.time?.total_hours || 0}h
+                    </p>
+                  </div>
+
+                  {/* Completion Rate */}
+                  <div className="p-4 bg-orange-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-orange-600 mb-2">
+                      <TrendingUp className="w-5 h-5" />
+                      <span className="text-sm font-medium">Tỷ lệ hoàn thành</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {statistics.overview?.completion_rate || 0}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Quick Stats */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Thao Tác Nhanh</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => navigate('/student/dashboard')}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3"
+                >
+                  <BookOpen className="w-5 h-5 text-blue-600" />
+                  <span>Về Dashboard</span>
+                </button>
+                <button
+                  onClick={() => navigate('/student/courses')}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3"
+                >
+                  <GraduationCap className="w-5 h-5 text-green-600" />
+                  <span>Khóa học của tôi</span>
+                </button>
+                <button
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 text-red-600"
+                  onClick={() => {
+                    localStorage.clear();
+                    navigate('/login');
+                  }}
+                >
+                  <X className="w-5 h-5" />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Account Info */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông Tin Tài Khoản</h3>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-gray-500">ID Người dùng</p>
+                  <p className="font-mono text-gray-900">{user?.id || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Ngày tạo</p>
+                  <p className="text-gray-900">
+                    {user?.created_at 
+                      ? new Date(user.created_at).toLocaleDateString('vi-VN')
+                      : 'N/A'
+                    }
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Trạng thái</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Đang hoạt động
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProfilePage;

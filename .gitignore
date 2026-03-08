@@ -1,0 +1,24 @@
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environments
+venv/
+backend/venv/
+
+# Frontend build/install artifacts
+**/node_modules/
+frontend/dist/
+
+# OS/archive leftovers
+Courses/__MACOSX/
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.vscode/

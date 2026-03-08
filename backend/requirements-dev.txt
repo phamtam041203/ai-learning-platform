@@ -1,0 +1,41 @@
+# ===== Testing =====
+pytest==7.4.3
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+faker==22.0.0
+factory-boy==3.3.0
+
+# ===== Code Quality =====
+black==23.12.1
+flake8==7.0.0
+isort==5.13.2
+mypy==1.8.0
+pylint==3.0.3
+
+# ===== Type Checking =====
+types-requests==2.31.0.20240106
+types-python-dateutil==2.8.19.14
+types-pytz==2023.3.1.1
+
+# ===== Development Tools =====
+ipython==8.19.0
+ipdb==0.13.13
+watchdog==4.0.0
+
+# ===== Documentation =====
+mkdocs==1.5.3
+mkdocs-material==9.5.3
+
+# ===== Profiling =====
+line-profiler==4.1.1
+memory-profiler==0.61.0
+
+# ===== Database Tools =====
+faker-sqlalchemy==0.1.1
+
+# ===== API Testing =====
+httpx==0.26.0
+
+# ===== Debugging =====
+python-dotenv==1.0.0

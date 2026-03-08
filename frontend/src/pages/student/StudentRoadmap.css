@@ -1,0 +1,506 @@
+.roadmap-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.roadmap-content {
+  flex: 1;
+  margin-left: 280px;
+  width: calc(100% - 280px);
+}
+
+.roadmap-header {
+  background: var(--bg-secondary);
+  padding: 2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.roadmap-title {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.roadmap-title h1 {
+  font-size: 2rem;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.roadmap-title p {
+  margin: 0.4rem 0 0;
+  color: var(--text-secondary);
+}
+
+.title-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--primary);
+}
+
+.roadmap-body {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.roadmap-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.roadmap-empty.error {
+  color: #ef4444;
+}
+
+.roadmap-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.roadmap-intake-callout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.4rem 1.5rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(185, 28, 28, 0.08), rgba(245, 158, 11, 0.12));
+  border: 1px solid rgba(185, 28, 28, 0.16);
+}
+
+.roadmap-intake-kicker {
+  display: inline-flex;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #991b1b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.roadmap-intake-callout h3 {
+  margin: 0.85rem 0 0.45rem;
+  color: var(--text-primary);
+}
+
+.roadmap-intake-callout p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.roadmap-intake-button {
+  border: none;
+  border-radius: 14px;
+  padding: 0.95rem 1.2rem;
+  background: linear-gradient(135deg, #b91c1c, #f59e0b);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(185, 28, 28, 0.18);
+  white-space: nowrap;
+}
+
+.roadmap-intake-button:hover {
+  transform: translateY(-1px);
+}
+
+.summary-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.summary-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.roadmap-active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(14, 165, 233, 0.08));
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.roadmap-active h3 {
+  margin: 0 0 0.75rem;
+  color: var(--text-primary);
+}
+
+.roadmap-active ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-secondary);
+}
+
+.roadmap-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.phase-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.phase-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.phase-card.active {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.03), transparent);
+}
+
+.phase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.phase-header:hover {
+  opacity: 0.85;
+}
+
+.phase-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.collapse-icon {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.collapse-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.phase-header h3 {
+  margin: 0 0 0.35rem;
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.phase-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.phase-status {
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.phase-status.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.phase-status.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.phase-status.locked {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+.elective-note {
+  background: rgba(14, 116, 144, 0.08);
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+/* Course Grid - Vertical Layout */
+.course-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Course Item - Each course card */
+.course-item {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  transition: all 0.2s ease;
+}
+
+.course-item:hover {
+  background: var(--bg-secondary);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Course Main - Top section with info and badge */
+.course-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.course-info {
+  flex: 1;
+}
+
+.course-name {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.course-details {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.course-code {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.course-credits {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Course Badge - Status indicator */
+.course-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.course-badge.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.course-badge.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.course-badge.available {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.course-badge.locked {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+.course-badge.selected {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+/* Course Progress - Progress bar at bottom */
+.course-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(148, 163, 184, 0.15);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 38px;
+  text-align: right;
+}
+
+/* Phase Progress Info */
+.phase-progress-info {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.04);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.progress-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.progress-item.required {
+  color: #2563eb;
+}
+
+.progress-item.elective {
+  color: #7c3aed;
+}
+
+/* Course Sections */
+.course-section {
+  margin-bottom: 2rem;
+}
+
+.course-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+}
+
+.section-header.required {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.08));
+  color: #2563eb;
+  border-left: 4px solid #3b82f6;
+}
+
+.section-header.elective {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.08));
+  color: #7c3aed;
+  border-left: 4px solid #8b5cf6;
+}
+
+/* Elective tag in course card */
+.elective-tag {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.15));
+  color: #7c3aed;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Active Requirements */
+.active-requirements {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.requirement-section {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.requirement-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.requirement-section ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+}
+
+.requirement-section li {
+  margin-bottom: 0.25rem;
+}
+
+.requirement-section li.all-done {
+  color: #10b981;
+  font-weight: 600;
+  list-style: none;
+  margin-left: -1.2rem;
+}
+
+@media (max-width: 1024px) {
+  .roadmap-content {
+    margin-left: 0;
+    width: 100%;
+  }
+}

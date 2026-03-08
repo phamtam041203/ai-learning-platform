@@ -1,0 +1,369 @@
+.skill-assessment-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.skill-assessment-content {
+  flex: 1;
+  margin-left: 280px;
+  width: calc(100% - 280px);
+}
+
+.skill-assessment-header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 2rem;
+}
+
+.skill-assessment-header-inner,
+.skill-assessment-body {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.assessment-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.skill-assessment-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.skill-assessment-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--warning));
+  color: white;
+  flex-shrink: 0;
+}
+
+.skill-assessment-title-row h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 2rem;
+}
+
+.skill-assessment-title-row p {
+  margin: 0.55rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.skill-assessment-body {
+  padding: 2rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.skill-assessment-summary-grid,
+.skill-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.skill-summary-card,
+.skill-result-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.skill-summary-card span,
+.skill-result-card span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.skill-summary-card strong,
+.skill-result-card strong {
+  color: var(--text-primary);
+  font-size: 1.3rem;
+}
+
+.skill-assessment-alert {
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  color: var(--text-primary);
+}
+
+.skill-assessment-alert.error {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+.skill-assessment-form,
+.skill-assessment-result {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.assessment-group {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 22px;
+  padding: 1.4rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.assessment-group-header {
+  margin-bottom: 1rem;
+}
+
+.assessment-group-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.assessment-group-header p {
+  margin: 0.45rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.assessment-question-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.assessment-question-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 1.1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.assessment-question-title {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.question-number {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(200, 16, 46, 0.08);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.assessment-question-title strong {
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.assessment-options {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.assessment-option {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  background: var(--bg-secondary);
+}
+
+.assessment-option input {
+  margin-top: 0.2rem;
+  accent-color: var(--primary);
+}
+
+.assessment-option span {
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.assessment-submit-bar,
+.skill-result-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-radius: 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.assessment-primary-button,
+.assessment-secondary-button {
+  border: none;
+  border-radius: 14px;
+  padding: 0.9rem 1.2rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.assessment-primary-button {
+  background: linear-gradient(135deg, var(--primary), var(--warning));
+  color: white;
+}
+
+.assessment-primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.assessment-secondary-button {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.skill-result-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(200, 16, 46, 0.08), rgba(245, 158, 11, 0.12));
+  border: 1px solid rgba(200, 16, 46, 0.14);
+}
+
+.skill-result-kicker {
+  display: inline-flex;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.skill-result-hero h2 {
+  margin: 0.85rem 0 0.5rem;
+  color: var(--text-primary);
+}
+
+.skill-result-hero p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.skill-result-score {
+  min-width: 180px;
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  display: grid;
+  gap: 0.5rem;
+  align-content: center;
+}
+
+.skill-result-score strong {
+  font-size: 2rem;
+  color: var(--text-primary);
+}
+
+.result-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text-secondary);
+}
+
+.skill-result-sections {
+  display: grid;
+  gap: 1rem;
+}
+
+.skill-result-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 1.1rem 1.2rem;
+}
+
+.skill-result-section h3 {
+  margin: 0 0 0.85rem;
+  color: var(--text-primary);
+}
+
+.result-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.result-chip {
+  padding: 0.65rem 0.85rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.result-chip.good {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.result-chip.warn {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.result-action-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.result-action-item {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.result-action-item svg {
+  color: var(--success);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+@media (max-width: 900px) {
+  .skill-assessment-content {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .skill-result-hero,
+  .assessment-submit-bar,
+  .skill-result-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

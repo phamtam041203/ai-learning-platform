@@ -1,0 +1,343 @@
+/* DiscussionBoard.css */
+
+.disc-board {
+  margin-top: 2.5rem;
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* ── Header ── */
+.disc-board-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  color: #1e1b4b;
+}
+
+.disc-board-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  flex: 1;
+}
+
+.disc-count {
+  background: #7c3aed;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* ── Avatar ── */
+.disc-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+/* ── Composer ── */
+.disc-composer {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.disc-composer-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.disc-textarea {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  background: #f9fafb;
+  color: #111827;
+}
+
+.disc-textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+  background: #fff;
+}
+
+.disc-textarea--edit {
+  min-height: 70px;
+}
+
+.disc-textarea--reply {
+  min-height: 56px;
+  font-size: 0.85rem;
+}
+
+.disc-composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.disc-char-count {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-right: auto;
+}
+
+.disc-error {
+  font-size: 0.8rem;
+  color: #dc2626;
+  margin: 0;
+}
+
+/* ── Buttons ── */
+.disc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.disc-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.disc-btn--primary {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.disc-btn--primary:hover {
+  background: #6d28d9;
+}
+
+.disc-btn--send {
+  background: #2563eb;
+  color: #fff;
+}
+
+.disc-btn--send:hover {
+  background: #1d4ed8;
+}
+
+.disc-btn--save {
+  background: #16a34a;
+  color: #fff;
+}
+
+.disc-btn--save:hover {
+  background: #15803d;
+}
+
+.disc-btn--cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.disc-btn--cancel:hover {
+  background: #e5e7eb;
+}
+
+/* ── Comment list ── */
+.disc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.disc-loading,
+.disc-empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Comment item ── */
+.disc-comment {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.disc-comment--reply {
+  margin-left: 2rem;
+  padding-left: 1rem;
+  border-left: 2px solid #e5e7eb;
+}
+
+.disc-comment-body {
+  flex: 1;
+  background: #f9fafb;
+  border: 1px solid #f0f0f5;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
+.disc-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.disc-author {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #1e1b4b;
+}
+
+.disc-time {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.disc-edited {
+  font-size: 0.72rem;
+  color: #d1d5db;
+  font-style: italic;
+}
+
+.disc-content {
+  font-size: 0.9rem;
+  color: #374151;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+}
+
+/* ── Action bar ── */
+.disc-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.disc-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.55rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.disc-action-btn:hover {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.disc-action-btn--liked {
+  color: #7c3aed;
+  font-weight: 700;
+}
+
+.disc-action-btn--danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ── Edit inline ── */
+.disc-edit-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.disc-edit-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ── Reply box ── */
+.disc-reply-box {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.disc-reply-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ── Nested replies ── */
+.disc-replies {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.disc-toggle-replies {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  color: #7c3aed;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.15rem 0;
+  margin-bottom: 0.35rem;
+}
+
+.disc-toggle-replies:hover {
+  text-decoration: underline;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .disc-board {
+    padding: 1rem;
+  }
+
+  .disc-comment--reply {
+    margin-left: 1rem;
+    padding-left: 0.5rem;
+  }
+}
