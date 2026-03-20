@@ -10,6 +10,7 @@ import './AdminProgressPage.css';
 
 const AdminProgressPage = () => {
   const [students, setStudents] = useState([]);
+  const [allCourses, setAllCourses] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
   const [curriculum, setCurriculum] = useState(null);
@@ -20,6 +21,7 @@ const AdminProgressPage = () => {
   const [courseDetail, setCourseDetail] = useState(null);
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [adminAverageScore, setAdminAverageScore] = useState('8.0');
+  const [selectedCourseId, setSelectedCourseId] = useState('');
 
   const getValidatedScore = () => {
     const score = Number.parseFloat(adminAverageScore);
@@ -37,6 +39,7 @@ const AdminProgressPage = () => {
   useEffect(() => {
     fetchStudents();
     fetchCurriculum();
+    fetchAllCourses();
   }, []);
 
   const fetchStudents = async () => {
@@ -69,6 +72,21 @@ const AdminProgressPage = () => {
       }
     } catch (err) {
       console.error('Error fetching curriculum:', err);
+    }
+  };
+
+  const fetchAllCourses = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(buildApiUrl('/admin/courses'), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllCourses(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('Error fetching all courses:', err);
     }
   };
 
@@ -167,6 +185,22 @@ const AdminProgressPage = () => {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleCompleteSelectedCourse = async () => {
+    if (!selectedStudent) return;
+    if (!selectedCourseId) {
+      setMessage({ type: 'error', text: 'Vui lòng chọn môn học cần cập nhật tiến độ.' });
+      return;
+    }
+
+    const selectedCourse = allCourses.find((course) => String(course.id) === String(selectedCourseId));
+    if (!selectedCourse) {
+      setMessage({ type: 'error', text: 'Không tìm thấy môn học đã chọn.' });
+      return;
+    }
+
+    await handleCompleteCourse(selectedCourse.id, selectedCourse.course_name);
   };
 
   // Fetch course lessons detail
@@ -512,6 +546,45 @@ const AdminProgressPage = () => {
                       <>
                         <GraduationCap size={16} />
                         Hỗ trợ tốt nghiệp theo điểm admin cấp
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="graduation-assist-card">
+                <h3><BookOpen size={18} /> Quản lý môn học bất kỳ</h3>
+                <p>Admin có thể cập nhật tiến độ cho mọi môn trong hệ thống, kể cả môn do giảng viên khác tạo.</p>
+                <div className="graduation-assist-controls">
+                  <label htmlFor="admin-select-course">Chọn môn học</label>
+                  <select
+                    id="admin-select-course"
+                    value={selectedCourseId}
+                    onChange={(e) => setSelectedCourseId(e.target.value)}
+                    disabled={actionLoading}
+                  >
+                    <option value="">-- Chọn môn học --</option>
+                    {allCourses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.course_code} - {course.course_name}
+                        {course.teacher_name ? ` (GV: ${course.teacher_name})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn-primary"
+                    onClick={handleCompleteSelectedCourse}
+                    disabled={actionLoading || !selectedCourseId}
+                  >
+                    {actionLoading ? (
+                      <>
+                        <Loader size={16} className="spin" />
+                        Đang cập nhật...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={16} />
+                        Cập nhật tiến độ môn đã chọn
                       </>
                     )}
                   </button>

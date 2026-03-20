@@ -251,7 +251,24 @@
   outline: none;
 }
 
+.graduation-assist-controls select {
+  grid-column: 1 / 2;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
 .graduation-assist-controls input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.graduation-assist-controls select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
@@ -824,6 +841,7 @@
 
   .graduation-assist-controls label,
   .graduation-assist-controls input,
+  .graduation-assist-controls select,
   .graduation-assist-controls .btn-primary {
     grid-column: 1 / 2;
   }

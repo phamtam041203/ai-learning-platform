@@ -340,7 +340,7 @@ async def list_courses(
     db: Session = Depends(get_db)
 ):
     """List all courses"""
-    courses = db.query(Course).all()
+    courses = db.query(Course, User).outerjoin(User, Course.teacher_id == User.id).all()
     return [
         {
             "id": c.id,
@@ -348,9 +348,11 @@ async def list_courses(
             "course_name": c.course_name,
             "major": c.major,
             "specialization": c.specialization,
-            "is_active": c.is_active
+            "is_active": c.is_active,
+            "teacher_id": c.teacher_id,
+            "teacher_name": teacher.full_name if teacher else None
         }
-        for c in courses
+        for c, teacher in courses
     ]
 
 
