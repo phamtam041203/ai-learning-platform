@@ -126,6 +126,30 @@ def get_active_phase_index(
     return len(phases)
 
 
+def get_current_phase_index(
+    curriculum: dict,
+    active_phase_index: int,
+    enrolled_codes: set[str],
+    completed_codes: set[str],
+    phase_index_by_code: dict[str, int],
+) -> int:
+    """Return the phase that best reflects the student's actual current level."""
+    phases = curriculum.get("phases", [])
+    if not phases:
+        return 0
+
+    highest_engaged_phase = max(
+        (phase_index_by_code[code] for code in (enrolled_codes | completed_codes) if code in phase_index_by_code),
+        default=None,
+    )
+    clamped_active_phase = min(active_phase_index, len(phases) - 1)
+
+    if highest_engaged_phase is None:
+        return clamped_active_phase
+
+    return min(max(clamped_active_phase, highest_engaged_phase), len(phases) - 1)
+
+
 def get_user_curriculum_state(
     db: Session,
     user_id: int,
@@ -169,6 +193,13 @@ def get_user_curriculum_state(
     completed_electives = completed_codes & all_elective_codes
 
     active_phase_index = get_active_phase_index(curriculum, completed_codes, completed_electives)
+    current_phase_index = get_current_phase_index(
+        curriculum,
+        active_phase_index,
+        enrolled_codes,
+        completed_codes,
+        index.get("phase_index_by_code", {}),
+    )
 
     return {
         "completed_codes": completed_codes,
@@ -176,6 +207,7 @@ def get_user_curriculum_state(
         "selected_electives": selected_electives,
         "completed_electives": completed_electives,
         "active_phase_index": active_phase_index,
+        "current_phase_index": current_phase_index,
         **index
     }
 

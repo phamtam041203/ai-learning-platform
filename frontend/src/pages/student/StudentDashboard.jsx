@@ -12,6 +12,7 @@ import {
 import './StudentDashboard.css';
 import { studentAPI, courseAPI } from '../../services/api';
 import { buildGradesSnapshotFromEnrollments, convertScore10ToGpa4, normalizeRecommendations } from '../../utils/studentDataTransforms';
+import Loading from '../../components/common/Loading';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -224,10 +225,12 @@ const StudentDashboard = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="student-dashboard loading-screen">
-        <div className="loading-content">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
-          <p>Đang tải dữ liệu...</p>
+      <div className="student-dashboard">
+        <div className="main-content dashboard-loading-main">
+          <Loading
+            title="Đang tải Dashboard dành cho sinh viên"
+            subtitle="Hệ thống đang tổng hợp thống kê, khóa học và đề xuất học tập của bạn."
+          />
         </div>
       </div>
     );
@@ -694,10 +697,12 @@ const GradesTab = () => {
 
   if (loading) {
     return (
-      <div className="dashboard-content loading-tab">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <p>Đang tải bảng điểm...</p>
-      </div>
+      <Loading
+        compact
+        className="dashboard-content"
+        title="Dang tai bang diem"
+        subtitle="Dang tinh toan GPA, diem trung binh va tong tin chi hoan thanh."
+      />
     );
   }
 
@@ -794,10 +799,12 @@ const ProgressTab = () => {
 
   if (loading) {
     return (
-      <div className="dashboard-content loading-tab">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <p>Đang tải thống kê...</p>
-      </div>
+      <Loading
+        compact
+        className="dashboard-content"
+        title="Dang tai thong ke"
+        subtitle="Dang cap nhat hieu suat hoc tap va muc do tien bo cua ban."
+      />
     );
   }
 
@@ -1003,7 +1010,6 @@ const RecommendationsTab = ({ recommendations, onEnrollSuccess }) => {
 // Browse Courses Tab Component
 const BrowseCoursesTab = ({ onEnrollSuccess }) => {
   const [courses, setCourses] = useState([]);
-  const [majors, setMajors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMajor, setSelectedMajor] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1012,23 +1018,38 @@ const BrowseCoursesTab = ({ onEnrollSuccess }) => {
 
   useEffect(() => {
     fetchData();
-  }, [selectedMajor, searchTerm]);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [coursesRes, majorsRes] = await Promise.all([
-        courseAPI.getCourses({ major: selectedMajor, search: searchTerm }),
-        courseAPI.getMajors()
-      ]);
-      setCourses(coursesRes.courses || []);
-      setMajors(majorsRes || []);
+      const coursesRes = await studentAPI.getSpecializationCourses();
+      setCourses((coursesRes || []).filter((course) => !course.is_enrolled));
     } catch (err) {
       console.error('Failed to fetch courses:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredCourses = courses.filter((course) => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const matchesSearch = !normalizedSearch
+      || course.course_name?.toLowerCase().includes(normalizedSearch)
+      || course.course_code?.toLowerCase().includes(normalizedSearch)
+      || course.class_code?.toLowerCase().includes(normalizedSearch);
+
+    const matchesMajor = !selectedMajor || course.major === selectedMajor;
+    return matchesSearch && matchesMajor;
+  });
+
+  const majors = Array.from(
+    new Map(
+      courses
+        .filter((course) => course.major)
+        .map((course) => [course.major, { code: course.major, name: course.major }])
+    ).values()
+  );
 
   const handleEnroll = async (courseId) => {
     setEnrolling(courseId);
@@ -1081,14 +1102,15 @@ const BrowseCoursesTab = ({ onEnrollSuccess }) => {
       )}
 
       {loading ? (
-        <div className="loading-tab">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <p>Đang tải khóa học...</p>
-        </div>
+        <Loading
+          compact
+          title="Dang tai khoa hoc"
+          subtitle="Dang dong bo danh sach khoa hoc va tien do hien tai."
+        />
       ) : (
         <div className="browse-courses-grid">
-          {courses.length > 0 ? (
-            courses.map((course) => (
+          {filteredCourses.length > 0 ? (
+            filteredCourses.map((course) => (
               <div key={course.id} className="browse-course-card">
                 <div className="browse-card-header">
                   <span className="course-code-badge">{course.course_code}</span>

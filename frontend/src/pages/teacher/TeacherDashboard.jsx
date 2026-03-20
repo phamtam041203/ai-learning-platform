@@ -32,6 +32,8 @@ const TeacherDashboard = () => {
     title: '',
     description: '',
     course_id: '',
+    activity_type: 'quiz',
+    activity_prompt: '',
     file: null,
     video_url: ''
   });
@@ -88,9 +90,13 @@ const TeacherDashboard = () => {
   const handleUploadLesson = async (e) => {
     e.preventDefault();
     try {
+      if (lessonForm.activity_type === 'essay' && !lessonForm.activity_prompt.trim()) {
+        alert('Bài học tự luận cần có yêu cầu hoặc đề bài');
+        return;
+      }
       await teacherAPI.createLesson(lessonForm);
       setShowUploadLesson(false);
-      setLessonForm({ title: '', description: '', course_id: '', file: null, video_url: '' });
+      setLessonForm({ title: '', description: '', course_id: '', activity_type: 'quiz', activity_prompt: '', file: null, video_url: '' });
       alert('Upload bài học thành công!');
       fetchTeacherData();
     } catch (err) {
@@ -505,11 +511,33 @@ const TeacherDashboard = () => {
                 />
               </div>
               <div className="form-group">
+                <label>Loại hoạt động *</label>
+                <select
+                  value={lessonForm.activity_type}
+                  onChange={(e) => setLessonForm({...lessonForm, activity_type: e.target.value})}
+                >
+                  <option value="quiz">Bài học có quiz</option>
+                  <option value="essay">Bài học tự luận</option>
+                </select>
+              </div>
+              {lessonForm.activity_type === 'essay' && (
+                <div className="form-group">
+                  <label>Đề bài hoặc yêu cầu tự luận *</label>
+                  <textarea
+                    value={lessonForm.activity_prompt}
+                    onChange={(e) => setLessonForm({...lessonForm, activity_prompt: e.target.value})}
+                    placeholder="Mô tả yêu cầu để sinh viên nộp bài tự luận"
+                    rows="4"
+                    required
+                  />
+                </div>
+              )}
+              <div className="form-group">
                 <label>Upload file tài liệu (PDF, DOCX, PPT...)</label>
                 <input
                   type="file"
                   onChange={(e) => setLessonForm({...lessonForm, file: e.target.files[0]})}
-                  accept=".pdf,.docx,.pptx,.txt"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx"
                 />
               </div>
               <div className="form-group">

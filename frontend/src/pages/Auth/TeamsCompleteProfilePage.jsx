@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../config/api';
 import './LoginPage.css';
 
 const TeamsCompleteProfilePage = () => {
@@ -29,8 +30,7 @@ const TeamsCompleteProfilePage = () => {
 
     setIsLoading(true);
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiBaseUrl}/api/auth/teams/complete-profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/teams/complete-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

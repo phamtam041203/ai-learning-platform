@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI, studentAPI } from '../../services/api';
 import { User, Mail, GraduationCap, BookOpen, Clock, Award, TrendingUp, Edit2, Save, X, Home, LogOut, Phone, MapPin, Calendar, Building2 } from 'lucide-react';
 import SpecializationModal from '../../components/SpecializationModal';
+import { buildBackendUrl } from '../../config/api';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const avatarInputRef = useRef(null);
   const [user, setUser] = useState(null);
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +17,76 @@ const ProfilePage = () => {
   const [editedData, setEditedData] = useState({});
   const [saveMessage, setSaveMessage] = useState('');
   const [showSpecializationModal, setShowSpecializationModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const syncStoredUser = (userData) => {
+    const storedUser = {
+      id: userData.id,
+      email: userData.email,
+      name: userData.full_name,
+      full_name: userData.full_name,
+      role: userData.role,
+      specialization: userData.specialization ?? null,
+      studentId: userData.student_id ?? null,
+      student_id: userData.student_id ?? null,
+      major: userData.major ?? null,
+      className: userData.class_name ?? null,
+      class_name: userData.class_name ?? null,
+      phone: userData.phone ?? null,
+      address: userData.address ?? null,
+      dateOfBirth: userData.date_of_birth ?? null,
+      date_of_birth: userData.date_of_birth ?? null,
+      intakeYear: userData.intake_year ?? null,
+      intake_year: userData.intake_year ?? null,
+      avatar: userData.avatar ?? null,
+    };
+
+    localStorage.setItem('currentUser', JSON.stringify(storedUser));
+    localStorage.setItem('user', JSON.stringify(storedUser));
+  };
+
+  const toEditableUserData = (response) => {
+    const combined = {
+      ...response.user,
+      ...(response.profile || {}),
+    };
+
+    return {
+      ...combined,
+      full_name: combined.full_name || '',
+      email: combined.email || '',
+      phone: combined.phone || '',
+      address: combined.address || '',
+      date_of_birth: combined.date_of_birth || '',
+      student_id: combined.student_id || '',
+      major: combined.major || '',
+      specialization: combined.specialization || '',
+      class_name: combined.class_name || '',
+      intake_year: combined.intake_year || '',
+      avatar: combined.avatar || null,
+    };
+  };
+
+  const buildEditState = (userData) => ({
+    full_name: userData.full_name || '',
+    email: userData.email || '',
+    phone: userData.phone || '',
+    address: userData.address || '',
+    date_of_birth: userData.date_of_birth || '',
+    student_id: userData.student_id || '',
+    major: userData.major || '',
+    specialization: userData.specialization || '',
+    class_name: userData.class_name || '',
+    intake_year: userData.intake_year || ''
+  });
+
+  const getSpecializationLabel = (specialization) => {
+    if (specialization === 'CNPM') {
+      return 'Công nghệ phần mềm (CNPM)';
+    }
+    return specialization || 'Chưa cập nhật';
+  };
 
   useEffect(() => {
     fetchProfileData();
@@ -29,27 +101,13 @@ const ProfilePage = () => {
         authAPI.getCurrentUser(),
         studentAPI.getStatistics().catch(() => null)
       ]);
-      
-      // ⭐ Merge user and profile data từ API response
-      const userData = {
-        ...response.user,
-        ...response.profile
-      };
+
+      const userData = toEditableUserData(response);
       
       setUser(userData);
       setStatistics(statsData);
-      setEditedData({
-        full_name: userData.full_name || '',
-        email: userData.email || '',
-        phone: userData.phone || '',
-        address: userData.address || '',
-        date_of_birth: userData.date_of_birth || '',
-        student_id: userData.student_id || '',
-        major: userData.major || '',
-        specialization: userData.specialization || '',
-        class_name: userData.class_name || '',
-        intake_year: userData.intake_year || ''
-      });
+      setEditedData(buildEditState(userData));
+      syncStoredUser(userData);
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError(err.message || 'Không thể tải thông tin profile');
@@ -57,20 +115,24 @@ const ProfilePage = () => {
       const localUser = localStorage.getItem('user');
       if (localUser) {
         try {
-          const userData = JSON.parse(localUser);
+          const storedUser = JSON.parse(localUser);
+          const userData = {
+            id: storedUser.id,
+            email: storedUser.email || '',
+            full_name: storedUser.full_name || storedUser.name || '',
+            role: storedUser.role || 'student',
+            phone: storedUser.phone || '',
+            address: storedUser.address || '',
+            date_of_birth: storedUser.date_of_birth || storedUser.dateOfBirth || '',
+            student_id: storedUser.student_id || storedUser.studentId || '',
+            major: storedUser.major || '',
+            specialization: storedUser.specialization || '',
+            class_name: storedUser.class_name || storedUser.className || '',
+            intake_year: storedUser.intake_year || storedUser.intakeYear || '',
+            avatar: storedUser.avatar || null,
+          };
           setUser(userData);
-          setEditedData({
-            full_name: userData.full_name || userData.name || '',
-            email: userData.email || '',
-            phone: userData.phone || '',
-            address: userData.address || '',
-            date_of_birth: userData.date_of_birth || '',
-            student_id: userData.student_id || '',
-            major: userData.major || '',
-            specialization: userData.specialization || '',
-            class_name: userData.class_name || '',
-            intake_year: userData.intake_year || ''
-          });
+          setEditedData(buildEditState(userData));
         } catch (e) {
           console.error('Error parsing local user data:', e);
         }
@@ -87,25 +149,35 @@ const ProfilePage = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditedData({
-      full_name: user.full_name || '',
-      email: user.email || ''
-    });
+    setEditedData(buildEditState(user));
     setSaveMessage('');
   };
 
   const handleSave = async () => {
     try {
-      const updatedUser = { ...user, ...editedData };
+      setSaving(true);
+      const payload = {
+        full_name: editedData.full_name,
+        phone: editedData.phone,
+        address: editedData.address,
+        date_of_birth: editedData.date_of_birth,
+        class_name: editedData.class_name,
+        intake_year: editedData.intake_year === '' ? null : Number(editedData.intake_year),
+      };
+
+      const response = await studentAPI.updateProfile(payload);
+      const updatedUser = toEditableUserData(response);
       setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+      setEditedData(buildEditState(updatedUser));
+      syncStoredUser(updatedUser);
       setIsEditing(false);
       setSaveMessage('✅ Đã lưu thay đổi thành công!');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (err) {
       console.error('Error saving profile:', err);
-      setSaveMessage('❌ Lỗi khi lưu thay đổi');
+      setSaveMessage(`❌ ${err.message || 'Lỗi khi lưu thay đổi'}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -114,11 +186,42 @@ const ProfilePage = () => {
   };
 
   const handleSpecializationSelect = (specialization) => {
-    // Update local state
-    setUser(prev => ({ ...prev, specialization }));
+    const updatedUser = { ...user, specialization };
+    setUser(updatedUser);
     setEditedData(prev => ({ ...prev, specialization }));
+    syncStoredUser(updatedUser);
     setShowSpecializationModal(false);
   };
+
+  const handleAvatarButtonClick = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      setAvatarUploading(true);
+      setSaveMessage('');
+      const response = await studentAPI.uploadAvatar(file);
+      const updatedUser = { ...user, avatar: response.avatar };
+      setUser(updatedUser);
+      syncStoredUser(updatedUser);
+      setSaveMessage('✅ Đã cập nhật ảnh đại diện thành công!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+      setSaveMessage(`❌ ${err.message || 'Lỗi khi cập nhật ảnh đại diện'}`);
+    } finally {
+      setAvatarUploading(false);
+      event.target.value = '';
+    }
+  };
+
+  const avatarUrl = user?.avatar ? buildBackendUrl(user.avatar) : null;
 
   if (loading) {
     return (
@@ -161,14 +264,34 @@ const ProfilePage = () => {
             <div className="avatar-section">
               <div className="avatar-wrapper">
                 <div className="avatar-circle">
-                  <span className="avatar-text">
-                    {user?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Ảnh đại diện" className="avatar-image" />
+                  ) : (
+                    <span className="avatar-text">
+                      {user?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  )}
                 </div>
-                <button className="avatar-upload-btn" title="Thay đổi ảnh">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={handleAvatarChange}
+                />
+                <button
+                  className="avatar-upload-btn"
+                  title="Thay đổi ảnh"
+                  onClick={handleAvatarButtonClick}
+                  disabled={avatarUploading}
+                  type="button"
+                >
                   <Edit2 size={16} />
                 </button>
               </div>
+              <p className="avatar-help-text">
+                {avatarUploading ? 'Đang tải ảnh lên...' : 'JPG, PNG hoặc WEBP, tối đa 5MB'}
+              </p>
             </div>
 
             {/* Info Section */}
@@ -183,7 +306,7 @@ const ProfilePage = () => {
                 {user?.specialization && (
                   <span className="tag tag-secondary">
                     <BookOpen size={14} />
-                    {user.specialization}
+                    {getSpecializationLabel(user.specialization)}
                   </span>
                 )}
               </div>
@@ -198,11 +321,11 @@ const ProfilePage = () => {
                 </button>
               ) : (
                 <div className="btn-group">
-                  <button onClick={handleSave} className="btn btn-success">
+                  <button onClick={handleSave} className="btn btn-success" disabled={saving}>
                     <Save size={18} />
-                    Lưu
+                    {saving ? 'Đang lưu...' : 'Lưu'}
                   </button>
-                  <button onClick={handleCancel} className="btn btn-outline">
+                  <button onClick={handleCancel} className="btn btn-outline" disabled={saving}>
                     <X size={18} />
                     Hủy
                   </button>
@@ -323,17 +446,8 @@ const ProfilePage = () => {
                     <GraduationCap size={16} />
                     Mã sinh viên
                   </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedData.student_id}
-                      onChange={(e) => handleInputChange('student_id', e.target.value)}
-                      className="info-input"
-                      placeholder="Nhập mã sinh viên"
-                    />
-                  ) : (
-                    <p className="info-value">{user?.student_id || 'Chưa cập nhật'}</p>
-                  )}
+                  <p className="info-value">{user?.student_id || 'Chưa cập nhật'}</p>
+                  {isEditing && <span className="info-note">Mã sinh viên được khóa và không thể thay đổi.</span>}
                 </div>
 
                 <div className="info-group">
@@ -342,15 +456,16 @@ const ProfilePage = () => {
                     Chuyên ngành
                   </label>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <p className="info-value">{user?.specialization || 'Chưa cập nhật'}</p>
+                    <p className="info-value">{getSpecializationLabel(user?.specialization)}</p>
                     <button 
                       onClick={() => setShowSpecializationModal(true)}
                       className="btn-change-specialization"
-                      title="Chọn chuyên ngành khác"
+                      title="Chuẩn hóa hồ sơ về CNPM"
                     >
-                      🔄 Thay đổi
+                      🔄 Chuẩn hóa CNPM
                     </button>
                   </div>
+                  <span className="info-note">Hiện tại hồ sơ sinh viên đang được chuẩn hóa về chuyên ngành CNPM</span>
                 </div>
 
                 <div className="info-group">
@@ -358,7 +473,7 @@ const ProfilePage = () => {
                     <BookOpen size={16} />
                     Ngành học
                   </label>
-                  <p className="info-value">{user?.major || 'Chưa cập nhật'}</p>
+                  <p className="info-value">{user?.major || 'Công nghệ thông tin'}</p>
                 </div>
 
                 <div className="info-group">

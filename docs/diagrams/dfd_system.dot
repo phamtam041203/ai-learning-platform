@@ -1,0 +1,43 @@
+digraph dfd_system {
+	fontsize=11 rankdir=LR
+	node [color="#475569" fillcolor="#f8fafc" shape=box style="rounded,filled"]
+	student [label=Student]
+	teacher [label=Teacher]
+	admin [label=Admin]
+	fe [label="Frontend
+React + Vite" fillcolor="#e0f2fe"]
+	api [label="FastAPI Backend" fillcolor="#dbeafe"]
+	auth [label="Auth API"]
+	student_api [label="Student API"]
+	courses [label="Courses API"]
+	teacher_api [label="Teacher API"]
+	admin_api [label="Admin API"]
+	chatbot [label="Chatbot API"]
+	pg [label=PostgreSQL fillcolor="#fef3c7" shape=cylinder]
+	redis [label=Redis fillcolor="#fee2e2" shape=cylinder]
+	mongo [label=MongoDB fillcolor="#dcfce7" shape=cylinder]
+	gemini [label="Gemini AI" fillcolor="#ede9fe" shape=component]
+	uploads [label=Uploads fillcolor="#f1f5f9" shape=folder]
+	student -> fe [label="login/learn/quiz"]
+	teacher -> fe [label="manage content"]
+	admin -> fe [label="manage system"]
+	fe -> api [label="REST API"]
+	api -> auth
+	api -> student_api
+	api -> courses
+	api -> teacher_api
+	api -> admin_api
+	api -> chatbot
+	auth -> pg
+	student_api -> pg
+	courses -> pg
+	teacher_api -> pg
+	admin_api -> pg
+	student_api -> redis
+	chatbot -> redis
+	student_api -> mongo
+	chatbot -> mongo
+	chatbot -> gemini
+	api -> uploads
+	uploads -> pg [label="file refs"]
+}

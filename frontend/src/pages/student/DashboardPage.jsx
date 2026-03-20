@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, BookOpen, Award, TrendingUp, 
-  Clock, CheckCircle, Target, Activity 
+  Clock, CheckCircle, Target, Activity, Brain, AlertTriangle, Sparkles, ChevronRight
 } from 'lucide-react';
 import StudentSidebar from '../../components/StudentSidebar';
-import { studentAPI, courseAPI } from '../../services/api';
+import { studentAPI, courseAPI, chatbotAPI } from '../../services/api';
 import './StudentDashboard.css';
 
 const DashboardPage = () => {
@@ -13,6 +13,7 @@ const DashboardPage = () => {
   const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') === 'true');
   const [dashboardData, setDashboardData] = useState(null);
   const [courses, setCourses] = useState([]);
+  const [advisorAnalysis, setAdvisorAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -56,12 +57,14 @@ const DashboardPage = () => {
       setError(null);
       
       // Fetch dashboard stats and courses
-      const [statsResponse, coursesResponse] = await Promise.all([
+      const [statsResponse, coursesResponse, advisorResponse] = await Promise.all([
         studentAPI.getDashboard(),
-        courseAPI.getMyCourses()
+        courseAPI.getMyCourses(),
+        chatbotAPI.getStudentAnalysis().catch(() => null)
       ]);
       
       setDashboardData(statsResponse);
+      setAdvisorAnalysis(advisorResponse);
       
       // Transform enrollment data to course format
       const transformedCourses = (coursesResponse || []).map(enrollment => {
@@ -96,19 +99,18 @@ const DashboardPage = () => {
     return '#ef4444';
   };
 
+  const lowQuizWeakness = advisorAnalysis?.weaknesses?.find((item) => item.category === 'Điểm quiz thấp');
+  const stalledCoursesWeakness = advisorAnalysis?.weaknesses?.find((item) => item.category === 'Khóa học chưa hoàn thành');
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div className="student-page-shell">
       <StudentSidebar darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
 
-      <div style={{ flex: 1, marginLeft: '280px', width: 'calc(100% - 280px)' }}>
+      <div className="student-page-main">
         {/* Header */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '2rem',
-          borderBottom: '1px solid var(--border-color)'
-        }}>
-          <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        <div className="student-page-header">
+          <div className="student-page-header-inner">
+            <div className="student-page-title-row">
               <BarChart3 size={32} style={{ color: 'var(--primary)' }} />
               <h1 style={{
                 fontSize: '2rem',
@@ -126,7 +128,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+        <div className="student-page-body">
           {loading ? (
             <div style={{ textAlign: 'center', padding: '3rem' }}>
               <p style={{ color: 'var(--text-secondary)' }}>Đang tải dữ liệu...</p>
@@ -306,6 +308,229 @@ const DashboardPage = () => {
                   </div>
                 </div>
               </div>
+
+              {advisorAnalysis ? (
+                <div style={{
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: 'var(--shadow-sm)',
+                  marginBottom: '2rem'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: '1rem',
+                    marginBottom: '1.25rem',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.4rem 0.75rem',
+                        borderRadius: '999px',
+                        background: 'rgba(59, 130, 246, 0.08)',
+                        color: 'var(--primary)',
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                        marginBottom: '0.75rem'
+                      }}>
+                        <Sparkles size={16} />
+                        AI phân tích học tập
+                      </div>
+                      <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        {advisorAnalysis.dashboard_summary?.headline || 'Tổng quan thành tích học tập'}
+                      </h2>
+                      <p style={{ color: 'var(--text-secondary)', margin: '0.75rem 0 0', lineHeight: 1.65 }}>
+                        {advisorAnalysis.dashboard_summary?.summary}
+                      </p>
+                    </div>
+
+                    <div style={{
+                      minWidth: '160px',
+                      padding: '1rem',
+                      borderRadius: '14px',
+                      background: 'rgba(99, 102, 241, 0.08)',
+                      border: '1px solid rgba(99, 102, 241, 0.12)'
+                    }}>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Điểm tổng thể</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        {advisorAnalysis.overall_score?.overall_score || 0}
+                      </div>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        color: advisorAnalysis.overall_score?.color === 'green' ? '#10b981' : advisorAnalysis.overall_score?.color === 'blue' ? '#3b82f6' : advisorAnalysis.overall_score?.color === 'orange' ? '#f59e0b' : '#ef4444',
+                        fontWeight: 700
+                      }}>
+                        <Brain size={16} />
+                        {advisorAnalysis.overall_score?.grade}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '1rem',
+                    marginBottom: '1.25rem'
+                  }}>
+                    <div style={{ padding: '1rem', borderRadius: '14px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Tổng môn đã học</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        {advisorAnalysis.performance_summary?.studied_courses || 0}
+                      </div>
+                    </div>
+                    <div style={{ padding: '1rem', borderRadius: '14px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Quiz trung bình</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        {advisorAnalysis.performance_summary?.average_quiz_score || 0}%
+                      </div>
+                    </div>
+                    <div style={{ padding: '1rem', borderRadius: '14px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Quiz đạt</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        {advisorAnalysis.performance_summary?.passed_quizzes || 0}/{advisorAnalysis.performance_summary?.total_quizzes || 0}
+                      </div>
+                    </div>
+                    <div style={{ padding: '1rem', borderRadius: '14px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Bước tiếp theo</div>
+                      <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                        {advisorAnalysis.dashboard_summary?.next_step || 'Tiếp tục duy trì tiến độ'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    <div style={{ padding: '1rem', borderRadius: '14px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <Target size={18} style={{ color: '#10b981' }} />
+                        <strong style={{ color: 'var(--text-primary)' }}>Điểm mạnh</strong>
+                      </div>
+                      {advisorAnalysis.strengths?.length ? advisorAnalysis.strengths.slice(0, 3).map((strength) => (
+                        <div key={strength.category} style={{ marginBottom: '0.75rem' }}>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{strength.category}</div>
+                          <div style={{ color: 'var(--text-secondary)', lineHeight: 1.55 }}>{strength.description}</div>
+                        </div>
+                      )) : (
+                        <div style={{ color: 'var(--text-secondary)' }}>Chưa có đủ dữ liệu để kết luận điểm mạnh rõ ràng.</div>
+                      )}
+                    </div>
+
+                    <div style={{ padding: '1rem', borderRadius: '14px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <AlertTriangle size={18} style={{ color: '#ef4444' }} />
+                        <strong style={{ color: 'var(--text-primary)' }}>Điểm cần cải thiện</strong>
+                      </div>
+                      {advisorAnalysis.weaknesses?.length ? advisorAnalysis.weaknesses.slice(0, 3).map((weakness) => (
+                        <div key={weakness.category} style={{ marginBottom: '0.85rem' }}>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{weakness.category}</div>
+                          <div style={{ color: 'var(--text-secondary)', lineHeight: 1.55 }}>{weakness.description}</div>
+                          <div style={{ color: 'var(--primary)', marginTop: '0.35rem', fontSize: '0.92rem' }}>{weakness.action}</div>
+                        </div>
+                      )) : (
+                        <div style={{ color: 'var(--text-secondary)' }}>Hiện chưa có điểm yếu nổi bật từ dữ liệu học tập của bạn.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {lowQuizWeakness?.items?.length ? (
+                    <div style={{ marginTop: '1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <Activity size={18} style={{ color: '#f59e0b' }} />
+                        <strong style={{ color: 'var(--text-primary)' }}>Các quiz điểm thấp cần ôn lại</strong>
+                      </div>
+                      <div style={{ display: 'grid', gap: '0.75rem' }}>
+                        {lowQuizWeakness.items.map((item) => (
+                          <div key={`${item.quiz_result_id}-${item.lesson_id}`} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: '1rem',
+                            alignItems: 'center',
+                            padding: '1rem',
+                            borderRadius: '12px',
+                            background: 'rgba(245, 158, 11, 0.08)',
+                            border: '1px solid rgba(245, 158, 11, 0.16)',
+                            flexWrap: 'wrap'
+                          }}>
+                            <div>
+                              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.lesson_title}</div>
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>{item.course_name}</div>
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                                Đúng {item.correct_answers ?? 0}/{item.total_questions ?? 0} câu
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{
+                                minWidth: '72px',
+                                textAlign: 'center',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '999px',
+                                background: 'rgba(239, 68, 68, 0.12)',
+                                color: '#ef4444',
+                                fontWeight: 800
+                              }}>
+                                {item.score}%
+                              </div>
+                              {item.course_id && item.lesson_id ? (
+                                <button
+                                  onClick={() => navigate(`/student/courses/${item.course_id}/lessons/${item.lesson_id}`)}
+                                  style={{
+                                    border: 'none',
+                                    background: 'var(--primary)',
+                                    color: '#fff',
+                                    borderRadius: '10px',
+                                    padding: '0.65rem 0.9rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem'
+                                  }}
+                                >
+                                  Ôn lại
+                                  <ChevronRight size={16} />
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {stalledCoursesWeakness?.items?.length ? (
+                    <div style={{ marginTop: '1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <BookOpen size={18} style={{ color: '#3b82f6' }} />
+                        <strong style={{ color: 'var(--text-primary)' }}>Các môn đang học dở</strong>
+                      </div>
+                      <div style={{ display: 'grid', gap: '0.75rem' }}>
+                        {stalledCoursesWeakness.items.map((item) => (
+                          <div key={item.course_id} style={{
+                            padding: '1rem',
+                            borderRadius: '12px',
+                            background: 'rgba(59, 130, 246, 0.08)',
+                            border: '1px solid rgba(59, 130, 246, 0.14)'
+                          }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.course_name}</div>
+                            <div style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Tiến độ hiện tại: {item.progress}%</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {/* Recent Courses */}
               <div>

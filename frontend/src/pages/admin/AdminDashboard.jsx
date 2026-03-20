@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import adminAPI from '../../services/adminAPI';
+import Loading from '../../components/common/Loading';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -20,15 +21,19 @@ const AdminDashboard = () => {
   const [showCreateTeacher, setShowCreateTeacher] = useState(false);
   const [showCreateStudent, setShowCreateStudent] = useState(false);
   const [showCreateAssessment, setShowCreateAssessment] = useState(false);
+  const [teacherFormMessage, setTeacherFormMessage] = useState(null);
 
   const [teacherForm, setTeacherForm] = useState({
     email: '',
     password: '',
     full_name: '',
     teacher_id: '',
-    department: '',
+    department: 'Khoa CNTT',
     position: '',
-    phone: ''
+    phone: '',
+    specialization: '',
+    office_location: '',
+    years_of_experience: ''
   });
 
   const [studentForm, setStudentForm] = useState({
@@ -96,6 +101,7 @@ const AdminDashboard = () => {
   const handleCreateTeacher = async (event) => {
     event.preventDefault();
     try {
+      setTeacherFormMessage(null);
       const created = await adminAPI.createTeacher(teacherForm);
       setTeachers([created, ...teachers]);
       setShowCreateTeacher(false);
@@ -104,12 +110,16 @@ const AdminDashboard = () => {
         password: '',
         full_name: '',
         teacher_id: '',
-        department: '',
+        department: 'Khoa CNTT',
         position: '',
-        phone: ''
+        phone: '',
+        specialization: '',
+        office_location: '',
+        years_of_experience: ''
       });
+      setTeacherFormMessage({ type: 'success', text: 'Đã tạo tài khoản giảng viên thành công.' });
     } catch (err) {
-      alert(err.message || 'Không thể tạo giảng viên');
+      setTeacherFormMessage({ type: 'error', text: err.message || 'Không thể tạo giảng viên' });
     }
   };
 
@@ -212,9 +222,11 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="admin-dashboard">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Đang tải dữ liệu...</p>
+        <div className="admin-dashboard-loading-shell">
+          <Loading
+            title="Dang tai du lieu quan tri"
+            subtitle="He thong dang tong hop so lieu tong quan, danh sach nguoi dung, khoa hoc va bai danh gia."
+          />
         </div>
       </div>
     );
@@ -391,8 +403,23 @@ const AdminDashboard = () => {
               </button>
             </div>
 
+            <div className="admin-info-banner">
+              <strong>Đăng ký giảng viên công khai đã bị tắt.</strong>
+              <span> Chỉ admin mới được tạo tài khoản và cấp quyền giảng viên từ màn hình này.</span>
+            </div>
+
+            {teacherFormMessage && (
+              <div className={`admin-inline-message ${teacherFormMessage.type}`}>
+                {teacherFormMessage.text}
+              </div>
+            )}
+
             {showCreateTeacher && (
               <form className="form-card" onSubmit={handleCreateTeacher}>
+                <div className="form-card-header">
+                  <h3>Tạo tài khoản giảng viên</h3>
+                  <p>Admin cấp email, mật khẩu ban đầu và thông tin hồ sơ giảng viên tại đây.</p>
+                </div>
                 <div className="form-grid">
                   <input
                     type="text"
@@ -441,8 +468,32 @@ const AdminDashboard = () => {
                     value={teacherForm.phone}
                     onChange={(e) => setTeacherForm({ ...teacherForm, phone: e.target.value })}
                   />
+                  <input
+                    type="text"
+                    placeholder="Chuyên môn / chuyên ngành phụ trách"
+                    value={teacherForm.specialization}
+                    onChange={(e) => setTeacherForm({ ...teacherForm, specialization: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Văn phòng / phòng làm việc"
+                    value={teacherForm.office_location}
+                    onChange={(e) => setTeacherForm({ ...teacherForm, office_location: e.target.value })}
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Số năm kinh nghiệm"
+                    value={teacherForm.years_of_experience}
+                    onChange={(e) => setTeacherForm({ ...teacherForm, years_of_experience: e.target.value })}
+                  />
                 </div>
-                <button className="btn-primary" type="submit">Lưu giảng viên</button>
+                <div className="form-actions">
+                  <button className="btn-secondary" type="button" onClick={() => setShowCreateTeacher(false)}>
+                    Hủy
+                  </button>
+                  <button className="btn-primary" type="submit">Lưu giảng viên</button>
+                </div>
               </form>
             )}
 

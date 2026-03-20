@@ -1,6 +1,4 @@
-// ============================================
-// 📁 frontend/src/components/ChatBot/ChatBot.jsx
-// ============================================
+
 
 import { useState, useEffect, useRef } from 'react';
 import { Send, X, MessageSquare, Trash2, RefreshCw } from 'lucide-react';
@@ -286,9 +284,9 @@ const ChatBot = ({ isOpen, onClose }) => {
 
 export default ChatBot;
 
-// ============================================
+
 // 📁 frontend/src/components/ChatBot/ChatBotButton.jsx
-// ============================================
+
 
 import { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
@@ -319,9 +317,9 @@ const ChatBotButton = () => {
 };
 
 
-// ============================================
+
 // 📁 frontend/src/api/chatbot.api.js
-// ============================================
+
 
 import axios from './axios.config';
 

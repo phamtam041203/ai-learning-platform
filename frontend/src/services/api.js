@@ -3,7 +3,7 @@
  * Handles all API calls to backend
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import { API_URL } from '../config/api';
 
 // Helper function to get auth header
 const getAuthHeader = () => {
@@ -104,6 +104,41 @@ export const studentAPI = {
   // Get student dashboard data
   getDashboard: async () => {
     return apiCall('/student/dashboard');
+  },
+
+  // Update editable student profile fields
+  updateProfile: async (profileData) => {
+    return apiCall('/student/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    });
+  },
+
+  // Upload student avatar image
+  uploadAvatar: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('access_token');
+    const response = await fetch(`${API_URL}/student/profile/avatar`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData
+    });
+
+    if (response.status === 401) {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
+      throw new Error('Unauthorized - Redirecting to login');
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(error.detail || 'Upload failed');
+    }
+
+    return response.json();
   },
 
   // Get all grades

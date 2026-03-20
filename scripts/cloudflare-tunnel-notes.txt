@@ -1,0 +1,6 @@
+Cloudflare Quick Tunnel notes
+
+- This uses the existing Docker stack exposed on localhost:80.
+- The generated trycloudflare.com URL is temporary and changes every time you start the tunnel.
+- Quick Tunnel is free and good for demo/testing, not for stable production.
+- If %USERPROFILE%\.cloudflared\config.yml exists, quick tunnel may not start until that file is renamed temporarily.

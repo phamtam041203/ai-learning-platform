@@ -63,11 +63,3 @@ loguru==0.7.2
 
 # ===== Job Scheduling =====
 apscheduler==3.10.4
-
-# ===== Testing =====
-pytest==7.4.3
-pytest-asyncio==0.23.3
-
-# ===== Development =====
-python-json-logger==2.0.7
-py==1.11.0

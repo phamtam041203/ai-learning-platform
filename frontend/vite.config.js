@@ -2,6 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+const backendProxyTarget = process.env.BACKEND_PROXY_TARGET || 'http://localhost:8000';
+const backendWsTarget = backendProxyTarget.replace(/^http/i, 'ws');
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -44,7 +47,7 @@ export default defineConfig({
     // Proxy configuration for API calls
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: backendProxyTarget,
         changeOrigin: true,
         secure: false,
         // Don't rewrite path - backend also uses /api prefix
@@ -61,9 +64,14 @@ export default defineConfig({
           });
         },
       },
+      '/uploads': {
+        target: backendProxyTarget,
+        changeOrigin: true,
+        secure: false,
+      },
       // WebSocket proxy for real-time features
       '/ws': {
-        target: 'ws://localhost:8000',
+        target: backendWsTarget,
         ws: true,
         changeOrigin: true,
       },

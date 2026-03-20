@@ -2,6 +2,8 @@
 import base64
 import io
 import wave
+import time
+import hashlib
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -40,6 +42,10 @@ GOOGLE_TTS_VOICE_PRESETS = {
         "label": "Google AI Orus"
     }
 }
+TTS_CACHE_TTL_SECONDS = 1800
+TTS_CACHE_MAX_ITEMS = 256
+_tts_cache: dict[str, dict] = {}
+_tts_http_client = httpx.AsyncClient(timeout=25.0)
 
 LESSON_CHAT_STOP_WORDS = {
     "la", "là", "va", "và", "cua", "của", "cho", "trong", "khi", "voi", "với",
@@ -49,6 +55,8 @@ LESSON_CHAT_STOP_WORDS = {
     "hoc", "học", "bai", "bài", "nay", "này", "giup", "giúp", "giai", "giải",
     "thich", "thích", "ve", "về", "can", "cần", "hoi", "hỏi", "phan", "phần"
 }
+
+SUBSCRIPT_DIGITS_MAP = str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")
 
 # Debug: Print API key status at startup
 print(f"🔑 Gemini API Key loaded: {bool(GEMINI_API_KEY)} (length: {len(GEMINI_API_KEY) if GEMINI_API_KEY else 0})")
@@ -78,27 +86,47 @@ def _normalize_text(value: Optional[str]) -> str:
 
 
 def _build_tutor_tts_prompt(text: str, voice_gender: str) -> str:
-    normalized_text = text.strip()[:2000]
-    profile = (
-        "Gia sư AI nữ, giọng ấm, tự nhiên, thân thiện, gần với người thật"
-        if voice_gender == "female"
-        else "Gia sư AI nam, giọng trầm vừa, rõ, tự nhiên, gần với người thật"
+    normalized_text = text.strip()
+    profile = "nữ ấm" if voice_gender == "female" else "nam trầm vừa"
+
+    return (
+        f"Đọc tiếng Việt tự nhiên, tốc độ vừa, giọng {profile}. "
+        f"Không thêm mở đầu/kết thúc. Nội dung: {normalized_text}"
     )
 
-    return f"""# AUDIO PROFILE
-{profile}
 
-## THE SCENE
-Bạn đang hỗ trợ một sinh viên Việt Nam trong nền tảng học tập trực tuyến. Cách nói cần tự nhiên, rõ chữ, bình tĩnh, không khoa trương.
+def _make_tts_cache_key(text: str, voice_gender: str) -> str:
+    digest = hashlib.sha256(f"{voice_gender}:{text}".encode("utf-8")).hexdigest()
+    return f"tts:{digest}"
 
-### DIRECTOR'S NOTES
-Style: Ấm áp, chuyên nghiệp, giống người thật, dễ nghe trong hội thoại học tập.
-Pacing: Tốc độ vừa phải, có ngắt nghỉ tự nhiên.
-Accent: Tiếng Việt chuẩn, tự nhiên, không đọc kiểu đánh vần theo tiếng Anh.
 
-#### TRANSCRIPT
-{normalized_text}
-"""
+def _get_cached_tts(cache_key: str) -> Optional[dict]:
+    cached_item = _tts_cache.get(cache_key)
+    if not cached_item:
+        return None
+
+    if cached_item["expires_at"] < time.time():
+        _tts_cache.pop(cache_key, None)
+        return None
+
+    return cached_item["payload"]
+
+
+def _set_cached_tts(cache_key: str, payload: dict) -> None:
+    now = time.time()
+    _tts_cache[cache_key] = {
+        "payload": payload,
+        "expires_at": now + TTS_CACHE_TTL_SECONDS,
+        "created_at": now,
+    }
+
+    if len(_tts_cache) <= TTS_CACHE_MAX_ITEMS:
+        return
+
+    # Drop oldest cache entries when reaching cap.
+    overflow = len(_tts_cache) - TTS_CACHE_MAX_ITEMS
+    for key, _ in sorted(_tts_cache.items(), key=lambda item: item[1].get("created_at", 0))[:overflow]:
+        _tts_cache.pop(key, None)
 
 
 def _pcm_to_wav_bytes(pcm_bytes: bytes, channels: int = 1, sample_width: int = 2, rate: int = 24000) -> bytes:
@@ -169,12 +197,12 @@ def _build_tts_error(response: httpx.Response) -> HTTPException:
         retry_hint = f" sau khoảng {retry_seconds} giây" if retry_seconds else " sau ít phút"
         return HTTPException(
             status_code=429,
-            detail=f"Google AI voice đang tạm hết quota. Hãy thử lại{retry_hint} hoặc chuyển sang chế độ trả lời bằng chữ."
+            detail=f"Voice đang tạm hết quota. Hãy thử lại{retry_hint} hoặc chuyển sang chế độ trả lời bằng chữ."
         )
 
     return HTTPException(
         status_code=502,
-        detail=f"Không thể tạo giọng đọc Google AI lúc này. Chi tiết: {raw_message}"
+        detail=f"Không thể tạo giọng đọc AI lúc này. Chi tiết: {raw_message}"
     )
 
 
@@ -182,44 +210,50 @@ async def _generate_tutor_speech(text: str, voice_gender: str) -> dict:
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=503, detail="Gemini API key is not configured for TTS")
 
+    cache_key = _make_tts_cache_key(text, voice_gender)
+    cached_payload = _get_cached_tts(cache_key)
+    if cached_payload:
+        return cached_payload
+
     preset = GOOGLE_TTS_VOICE_PRESETS.get(voice_gender, GOOGLE_TTS_VOICE_PRESETS["female"])
     prompt = _build_tutor_tts_prompt(text, voice_gender)
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            GEMINI_TTS_API_URL,
-            headers={
-                "Content-Type": "application/json",
-                "x-goog-api-key": GEMINI_API_KEY,
-            },
-            json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "responseModalities": ["AUDIO"],
-                    "speechConfig": {
-                        "voiceConfig": {
-                            "prebuiltVoiceConfig": {
-                                "voiceName": preset["voice_name"]
-                            }
+    response = await _tts_http_client.post(
+        GEMINI_TTS_API_URL,
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": GEMINI_API_KEY,
+        },
+        json={
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseModalities": ["AUDIO"],
+                "speechConfig": {
+                    "voiceConfig": {
+                        "prebuiltVoiceConfig": {
+                            "voiceName": preset["voice_name"]
                         }
                     }
                 }
-            },
-            timeout=90.0
-        )
+            }
+        }
+    )
 
     if response.status_code != 200:
         raise _build_tts_error(response)
 
     result = response.json()
     audio_bytes, mime_type = _extract_audio_inline_data(result)
-    return {
+    payload = {
         "audio_base64": base64.b64encode(audio_bytes).decode("utf-8"),
         "mime_type": mime_type,
         "voice_name": preset["voice_name"],
         "voice_label": preset["label"],
         "model": "gemini-2.5-flash-preview-tts"
     }
+
+    _set_cached_tts(cache_key, payload)
+    return payload
 
 
 def _extract_pdf_text(pdf_file_name: Optional[str], max_pages: int = 4, max_chars: int = 6000) -> str:
@@ -284,6 +318,38 @@ def _extract_keywords(message: str) -> list[str]:
     ]
 
 
+def _normalize_numeric_question(message: str) -> str:
+    return _normalize_text(message).translate(SUBSCRIPT_DIGITS_MAP).lower()
+
+
+def _build_foundational_knowledge_answer(question: str) -> str:
+    normalized_question = _normalize_numeric_question(question)
+
+    if "nhị phân" in normalized_question and "thập phân" in normalized_question:
+        decimal_matches = re.findall(r"(\d+)\s*(?:10|thập\s*phân)", normalized_question)
+        decimal_value = None
+        if decimal_matches:
+            decimal_value = int(decimal_matches[0])
+        else:
+            standalone_numbers = [int(item) for item in re.findall(r"\d+", normalized_question)]
+            if standalone_numbers:
+                decimal_value = standalone_numbers[0]
+
+        if decimal_value is not None:
+            binary_value = format(decimal_value, "b")
+            decomposition = "0" if decimal_value == 0 else " + ".join(
+                str(2 ** power)
+                for power in range(decimal_value.bit_length() - 1, -1, -1)
+                if decimal_value & (1 << power)
+            )
+            return (
+                f"Số thập phân {decimal_value} tương đương số nhị phân {binary_value}.\n\n"
+                f"Có thể kiểm tra nhanh bằng cách tách {decimal_value} = {decomposition}, nên dạng nhị phân là {binary_value}."
+            )
+
+    return ""
+
+
 def _find_relevant_snippets(question: str, context: str, limit: int = 3) -> list[str]:
     keywords = _extract_keywords(question)
     sentences = [
@@ -325,6 +391,13 @@ def _build_local_lesson_answer(question: str, course: Course, lesson: Lesson, co
             f"Dựa trên bài \"{lesson.title}\" của môn \"{course.course_name}\", phần liên quan nhất đến câu hỏi của em là:\n"
             f"{snippet_block}\n\n"
             "Nếu em muốn, hãy hỏi tiếp theo kiểu cụ thể hơn như: khái niệm này dùng để làm gì, ví dụ thực tế, hoặc so sánh với phần khác trong bài."
+        )
+
+    foundational_answer = _build_foundational_knowledge_answer(question)
+    if foundational_answer:
+        return (
+            f"Trong bài \"{lesson.title}\" không nêu trực tiếp phần này, nhưng theo kiến thức nền chuẩn:\n"
+            f"{foundational_answer}"
         )
 
     preview = _normalize_text(context)[:700]
@@ -463,11 +536,14 @@ async def ask_lesson_assistant(
     prompt = f"""Bạn là trợ lý AI đang hỗ trợ sinh viên ngay trong lúc học bài.
 
 NGUYÊN TẮC:
-- Chỉ trả lời dựa trên ngữ cảnh bài học được cung cấp bên dưới.
-- Nếu trong bài chưa đủ dữ liệu để khẳng định, phải nói rõ điều đó.
+- Ưu tiên trả lời dựa trên ngữ cảnh bài học được cung cấp bên dưới.
+- Nếu câu hỏi là kiến thức nền, kiến thức phổ thông hoặc khái niệm chuẩn liên quan đến môn học, được phép dùng kiến thức chuẩn bên ngoài bài để trả lời.
+- Khi dùng kiến thức ngoài bài, phải nói rõ đó là phần giải thích mở rộng, không gắn nhầm là nguyên văn từ bài học.
+- Chỉ nói là "không đủ dữ liệu" khi câu hỏi cần chi tiết đặc thù của đúng bài học/tài liệu hiện tại mà ngữ cảnh không có.
 - Trả lời bằng tiếng Việt, ngắn gọn, dễ hiểu, tập trung vào câu hỏi.
 - Khi phù hợp, dùng gạch đầu dòng hoặc ví dụ ngắn.
-- Không bịa thêm kiến thức ngoài bài như thể đó là nội dung chắc chắn có trong bài.
+- Xuất ra văn bản thuần, không dùng Markdown như **đậm**, *nghiêng*, # tiêu đề, hoặc ```code```.
+- Không bịa thông tin đặc thù của bài học, khóa học, giảng viên hoặc tài liệu khi không có dữ liệu.
 
 THÔNG TIN KHÓA HỌC:
 - Khóa học: {course.course_name}
@@ -527,7 +603,6 @@ async def ask_gemini(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Ask Google Gemini with student context"""
     try:
         # Debug log
         logger.info(f"Gemini request from user {current_user.id}: {request.message[:50]}...")

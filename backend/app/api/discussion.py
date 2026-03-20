@@ -11,7 +11,7 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models.course import LessonComment, LessonCommentLike, Lesson, Notification
-from app.models.user import User
+from app.models.user import User, StudentProfile
 from app.api.auth import get_current_user
 
 router = APIRouter(prefix="/discussion", tags=["discussion"])
@@ -55,6 +55,7 @@ class ReplyOut(BaseModel):
     updated_at: Optional[datetime]
     author_id: int
     author_name: str
+    author_avatar: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -69,6 +70,7 @@ class CommentOut(BaseModel):
     updated_at: Optional[datetime]
     author_id: int
     author_name: str
+    author_avatar: Optional[str] = None
     replies: List[ReplyOut] = []
 
     class Config:
@@ -77,8 +79,22 @@ class CommentOut(BaseModel):
 
 # ─────────────────────── Helpers ───────────────────────
 
+def _get_avatar_map(db: Session, user_ids: list[int]) -> dict[int, Optional[str]]:
+    if not user_ids:
+        return {}
+
+    profiles = (
+        db.query(StudentProfile)
+        .filter(StudentProfile.user_id.in_(user_ids))
+        .all()
+    )
+    return {profile.user_id: profile.avatar for profile in profiles}
+
+
 def _serialize(comment: LessonComment, current_user_id: int,
-               liked_ids: set, replies: list = None) -> dict:
+               liked_ids: set, avatar_map: Optional[dict[int, Optional[str]]] = None,
+               replies: list = None) -> dict:
+    author_avatar = (avatar_map or {}).get(comment.user_id)
     return {
         "id": comment.id,
         "content": comment.content,
@@ -88,6 +104,7 @@ def _serialize(comment: LessonComment, current_user_id: int,
         "updated_at": comment.updated_at,
         "author_id": comment.user_id,
         "author_name": comment.author.full_name if comment.author else "Người dùng",
+        "author_avatar": author_avatar,
         "replies": replies or [],
     }
 
@@ -134,7 +151,9 @@ def get_comments(lesson_id: int, db: Session = Depends(get_db),
 
     # Collect IDs liked by current user for this lesson's comments
     all_ids = [c.id for c in top_comments] + [r.id for r in all_replies]
+    author_ids = list({c.user_id for c in top_comments} | {r.user_id for r in all_replies})
     liked_ids = set()
+    avatar_map = _get_avatar_map(db, author_ids)
     if all_ids:
         liked_rows = db.query(LessonCommentLike.comment_id).filter(
             LessonCommentLike.comment_id.in_(all_ids),
@@ -145,10 +164,10 @@ def get_comments(lesson_id: int, db: Session = Depends(get_db),
     result = []
     for c in top_comments:
         replies_out = [
-            _serialize(r, current_user.id, liked_ids)
+            _serialize(r, current_user.id, liked_ids, avatar_map)
             for r in reply_map.get(c.id, [])
         ]
-        result.append(_serialize(c, current_user.id, liked_ids, replies_out))
+        result.append(_serialize(c, current_user.id, liked_ids, avatar_map, replies_out))
 
     return result
 
@@ -199,7 +218,8 @@ def post_comment(lesson_id: int, body: CommentCreate,
 
     db.commit()
 
-    return _serialize(comment, current_user.id, set())
+    avatar_map = _get_avatar_map(db, [current_user.id])
+    return _serialize(comment, current_user.id, set(), avatar_map)
 
 
 @router.put("/{comment_id}", response_model=CommentOut)
@@ -228,7 +248,8 @@ def update_comment(comment_id: int, body: CommentUpdate,
     if row:
         liked_ids.add(comment_id)
 
-    return _serialize(comment, current_user.id, liked_ids)
+    avatar_map = _get_avatar_map(db, [comment.user_id])
+    return _serialize(comment, current_user.id, liked_ids, avatar_map)
 
 
 @router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)

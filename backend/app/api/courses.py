@@ -8,6 +8,8 @@ from sqlalchemy import func, desc
 from jose import JWTError, jwt
 from typing import Optional, List
 from datetime import datetime
+from pathlib import Path
+import re
 
 from app.database import get_db
 from app.models import (
@@ -33,6 +35,60 @@ router = APIRouter(
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+LESSON_LINK_PATTERN = re.compile(r"^\[\[lesson_id:(\d+)\]\]\s*", re.IGNORECASE)
+LESSON_ACTIVITY_PATTERN = re.compile(r"^\[\[activity_type:(quiz|essay)\]\]\s*", re.IGNORECASE)
+
+
+def _extract_lesson_id_from_assessment(assessment: Assessment) -> int | None:
+    instructions = assessment.instructions or ""
+    match = LESSON_LINK_PATTERN.match(instructions)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def _get_visible_instructions(assessment: Assessment) -> str:
+    instructions = assessment.instructions or ""
+    return LESSON_LINK_PATTERN.sub("", instructions, count=1).strip()
+
+
+def _extract_lesson_activity_type(lesson: Lesson) -> str | None:
+    content = lesson.content or ""
+    match = LESSON_ACTIVITY_PATTERN.match(content)
+    if match:
+        return match.group(1).lower()
+    return None
+
+
+def _get_visible_lesson_content(lesson: Lesson) -> str:
+    content = lesson.content or ""
+    return LESSON_ACTIVITY_PATTERN.sub("", content, count=1).strip()
+
+
+def _resolve_quiz_pass_requirement(quiz: Assessment) -> tuple[float, float]:
+    max_score = float(quiz.max_score or 0)
+    raw_passing_score = float(quiz.passing_score or 0)
+
+    if max_score <= 0:
+        return 0.0, 70.0
+
+    if raw_passing_score <= 0:
+        return round(max_score * 0.7, 2), 70.0
+
+    if raw_passing_score <= max_score:
+        return raw_passing_score, round((raw_passing_score / max_score) * 100, 2)
+
+    if raw_passing_score <= 100:
+        return round((raw_passing_score / 100) * max_score, 2), raw_passing_score
+
+    return round(max_score * 0.7, 2), 70.0
+
+
+def _get_lesson_file_kind(file_name: str | None) -> str | None:
+    if not file_name:
+        return None
+    extension = Path(file_name).suffix.lower()
+    return extension[1:] if extension else None
 
 
 # ============================================
@@ -707,16 +763,60 @@ async def get_course_lessons(
         Lesson.is_published == True
     ).order_by(Lesson.order).all()
 
+    course_quizzes = db.query(Assessment).filter(
+        Assessment.course_id == course_id,
+        Assessment.assessment_type == "quiz"
+    ).all()
+
+    quizzes_by_lesson_id = {}
+    for quiz in course_quizzes:
+        linked_lesson_id = _extract_lesson_id_from_assessment(quiz)
+        if linked_lesson_id is not None and linked_lesson_id not in quizzes_by_lesson_id:
+            quizzes_by_lesson_id[linked_lesson_id] = quiz
+
+    quiz_results_map = {}
+    if lessons:
+        quiz_results = db.query(QuizResult).filter(
+            QuizResult.user_id == current_user.id,
+            QuizResult.lesson_id.in_([lesson.id for lesson in lessons])
+        ).all()
+
+        for quiz_result in quiz_results:
+            existing_result = quiz_results_map.get(quiz_result.lesson_id)
+            if existing_result is None or (quiz_result.score or 0) > (existing_result.score or 0):
+                quiz_results_map[quiz_result.lesson_id] = quiz_result
+
     result = []
     for lesson in lessons:
+        visible_content = _get_visible_lesson_content(lesson)
+        activity_type = _extract_lesson_activity_type(lesson)
+        lesson_quiz = quizzes_by_lesson_id.get(lesson.id)
+        lesson_quiz_result = quiz_results_map.get(lesson.id)
+
+        if activity_type is None:
+            activity_type = "quiz" if lesson_quiz or lesson_quiz_result else "essay"
+
         result.append({
             "id": lesson.id,
             "title": lesson.title,
             "description": lesson.description,
-            "content": lesson.content,
+            "content": visible_content,
             "order": lesson.order,
+            "duration_minutes": lesson.duration_minutes,
             "is_published": lesson.is_published,
+            "course_name": course.course_name,
+            "pdf_file_name": lesson.pdf_file_name,
+            "file_kind": _get_lesson_file_kind(lesson.pdf_file_name),
             "pdf_url": f"/api/lessons/{lesson.pdf_file_name}" if lesson.pdf_file_name else None,
+            "activity_type": activity_type,
+            "has_quiz": activity_type == "quiz",
+            "quiz_result": {
+                "completed": lesson_quiz_result is not None,
+                "score": lesson_quiz_result.score if lesson_quiz_result else None,
+                "correct_answers": lesson_quiz_result.correct_answers if lesson_quiz_result else None,
+                "total_questions": lesson_quiz_result.total_questions if lesson_quiz_result else None,
+                "completed_at": lesson_quiz_result.completed_at.isoformat() if lesson_quiz_result and lesson_quiz_result.completed_at else None
+            },
             "created_at": lesson.created_at.isoformat() if lesson.created_at else None
         })
 
@@ -741,6 +841,8 @@ async def get_lesson_detail(
     if not lesson:
         raise HTTPException(404, "Lesson not found")
 
+    file_kind = _get_lesson_file_kind(lesson.pdf_file_name)
+
     # Get all quizzes for this course
     quizzes = db.query(Assessment).filter(
         Assessment.course_id == course_id,
@@ -750,9 +852,16 @@ async def get_lesson_detail(
     # Find quiz that matches this lesson
     matched_quiz = None
     
+    # Strategy 0: Match by explicit lesson metadata
+    for quiz in quizzes:
+        if _extract_lesson_id_from_assessment(quiz) == lesson_id:
+            matched_quiz = quiz
+            break
+
     # Strategy 1: Match by lesson order (quiz index)
     if lesson.order and lesson.order <= len(quizzes):
-        matched_quiz = quizzes[lesson.order - 1]  # Quiz index 0 = Lesson order 1
+        if matched_quiz is None:
+            matched_quiz = quizzes[lesson.order - 1]  # Quiz index 0 = Lesson order 1
     
     # Strategy 2: Match by title containing order number
     if not matched_quiz:
@@ -811,17 +920,33 @@ async def get_lesson_detail(
             "graded_at": essay_submission.graded_at.isoformat() if essay_submission.graded_at else None
         }
 
+    lesson_activity_type = _extract_lesson_activity_type(lesson)
+    if lesson_activity_type is None:
+        lesson_activity_type = "quiz" if matched_quiz else "essay"
+
+    if lesson_activity_type == "essay":
+        matched_quiz = None
+
+    visible_content = _get_visible_lesson_content(lesson)
+
     result = {
         "id": lesson.id,
         "title": lesson.title,
         "description": lesson.description,
-        "content": lesson.content,
+        "content": visible_content,
         "order": lesson.order,
+        "file_name": lesson.pdf_file_name,
+        "file_kind": file_kind,
+        "file_extension": f".{file_kind}" if file_kind else None,
+        "file_url": f"/api/lessons/{lesson.pdf_file_name}" if lesson.pdf_file_name else None,
+        "can_preview_inline": file_kind == "pdf",
         "pdf_url": f"/api/lessons/{lesson.pdf_file_name}" if lesson.pdf_file_name else None,
+        "activity_type": lesson_activity_type,
+        "essay_prompt": visible_content if lesson_activity_type == "essay" else None,
         "quiz": None,
         "essay_submission": essay_submission_info,
         "has_quiz": False,  # Will be set to True if quiz found
-        "supports_essay": True  # All lessons support essay submission for tự luận
+        "supports_essay": lesson_activity_type == "essay"
     }
 
     if matched_quiz:
@@ -848,7 +973,7 @@ async def get_lesson_detail(
             "id": matched_quiz.id,
             "title": matched_quiz.title,
             "description": matched_quiz.description,
-            "instructions": matched_quiz.instructions,
+            "instructions": _get_visible_instructions(matched_quiz),
             "max_score": matched_quiz.max_score,
             "passing_score": matched_quiz.passing_score,
             "duration_minutes": matched_quiz.duration_minutes,
@@ -885,12 +1010,25 @@ async def submit_quiz(
     if not lesson:
         raise HTTPException(404, "Lesson not found")
 
-    # Get quiz - match by order (QUIZ 01 for lesson with order=1, etc.)
-    # First try matching by order
+    lesson_activity_type = _extract_lesson_activity_type(lesson)
+    if lesson_activity_type == "essay":
+        raise HTTPException(400, "Bài học này dùng cho tự luận, không có quiz trắc nghiệm để nộp")
+
+    # Get quiz - first prefer direct lesson link metadata, then fall back to legacy matching.
     quiz_title_pattern = f"QUIZ {lesson.order:02d}" if lesson.order else None
     quiz = None
+
+    lesson_linked_quizzes = db.query(Assessment).filter(
+        Assessment.course_id == course_id,
+        Assessment.assessment_type == "quiz"
+    ).order_by(Assessment.id).all()
+
+    for candidate in lesson_linked_quizzes:
+        if _extract_lesson_id_from_assessment(candidate) == lesson_id:
+            quiz = candidate
+            break
     
-    if quiz_title_pattern:
+    if not quiz and quiz_title_pattern:
         quiz = db.query(Assessment).filter(
             Assessment.course_id == course_id,
             Assessment.title.contains(quiz_title_pattern),
@@ -961,6 +1099,8 @@ async def submit_quiz(
 
     score = (correct_count / total_points * quiz.max_score) if total_points > 0 else 0
     percentage = (correct_count / total_points * 100) if total_points > 0 else 0
+    required_score, required_percentage = _resolve_quiz_pass_requirement(quiz)
+    passed = score >= required_score
     
     print(f"[QUIZ GRADING] Correct points: {correct_count}/{total_points} -> Score: {score}/{quiz.max_score} ({percentage}%)")
 
@@ -1012,8 +1152,8 @@ async def submit_quiz(
         )
         db.add(lesson_progress)
     
-    # Mark lesson as completed if passed the quiz (>= 70%)
-    if percentage >= 70:
+    # Mark lesson as completed only when the quiz pass requirement is met.
+    if passed:
         lesson_progress.is_completed = True
         lesson_progress.completed_at = datetime.now()
     
@@ -1086,7 +1226,7 @@ async def submit_quiz(
         course_name=lesson.course.course_name if lesson.course else f"Course {course_id}",
         lesson_title=lesson.title,
         percentage=round(percentage, 2),
-        passed=score >= quiz.passing_score,
+        passed=passed,
         incorrect_questions=incorrect_questions,
         supplementary_materials=supplementary_materials[:4],
         preferred_difficulty=profile.preferred_difficulty,
@@ -1128,7 +1268,9 @@ async def submit_quiz(
         "score": round(score, 2),
         "percentage": round(percentage, 2),
         "max_score": quiz.max_score,
-        "passed": score >= quiz.passing_score,
+        "passed": passed,
+        "passing_score": round(required_score, 2),
+        "passing_percentage": round(required_percentage, 2),
         "course_progress": enrollment.progress if enrollment else 0,
         "course_grade": enrollment.total_score if enrollment else None,
         "correct_answers": correct_answers_count,

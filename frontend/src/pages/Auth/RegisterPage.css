@@ -246,12 +246,16 @@
 }
 
 .form-label {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary, #374151);
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  line-height: 1.7;
+  user-select: none;
   margin-bottom: 0.75rem;
 }
 
@@ -476,13 +480,12 @@ select.form-input {
 }
 
 /* Checkbox */
-.checkbox-label {
+.terms-row {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  color: var(--text-secondary, #6b7280);
+  justify-content: flex-start;
+  gap: 0.75rem;
+  width: 100%;
 }
 
 .checkbox-input {
@@ -491,16 +494,45 @@ select.form-input {
   cursor: pointer;
   accent-color: var(--primary-dark, #9f0d24);
   flex-shrink: 0;
-  margin-top: 0.125rem;
+  margin: 0.2rem 0 0;
 }
 
-.link {
+.terms-group {
+  gap: 0.625rem;
+}
+
+.terms-label {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.7;
+  text-align: left;
+  user-select: none;
+}
+
+.terms-text {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.terms-link {
   color: var(--primary-dark, #9f0d24);
   text-decoration: none;
   font-weight: 600;
 }
 
-.link:hover {
+.terms-text .terms-link {
+  display: inline;
+}
+
+.terms-link:hover {
   color: var(--primary-light);
 }
 

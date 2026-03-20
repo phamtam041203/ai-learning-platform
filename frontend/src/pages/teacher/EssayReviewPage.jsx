@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   FileText, User, Clock, CheckCircle, AlertCircle, Download,
   ArrowLeft, Send, Star, Eye, Filter, Search
 } from 'lucide-react';
+import { buildApiUrl, buildBackendUrl } from '../../config/api';
 import './EssayReviewPage.css';
 
 const EssayReviewPage = () => {
@@ -17,6 +18,7 @@ const EssayReviewPage = () => {
   const [courseInfo, setCourseInfo] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const detailPanelRef = useRef(null);
   
   // Grading state
   const [gradeScore, setGradeScore] = useState('');
@@ -39,7 +41,7 @@ const EssayReviewPage = () => {
       const statusParam = filterStatus !== 'all' ? `?status=${filterStatus}` : '';
       
       const response = await fetch(
-        `http://localhost:8000/api/teacher/courses/${courseId}/essay-submissions${statusParam}`,
+        buildApiUrl(`/teacher/courses/${courseId}/essay-submissions${statusParam}`),
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -66,7 +68,7 @@ const EssayReviewPage = () => {
       const token = localStorage.getItem('token');
       
       const response = await fetch(
-        'http://localhost:8000/api/teacher/pending-essays',
+        buildApiUrl('/teacher/pending-essays'),
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -90,7 +92,7 @@ const EssayReviewPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/teacher/essay-submissions/${submissionId}`,
+        buildApiUrl(`/teacher/essay-submissions/${submissionId}`),
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -102,6 +104,12 @@ const EssayReviewPage = () => {
         setGradeScore(data.score?.toString() || '');
         setGradeFeedback(data.feedback || '');
         setGradeSuccess(false);
+
+        if (window.innerWidth <= 1100) {
+          requestAnimationFrame(() => {
+            detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        }
       }
     } catch (err) {
       console.error('Error fetching submission detail:', err);
@@ -128,7 +136,7 @@ const EssayReviewPage = () => {
       }
 
       const response = await fetch(
-        `http://localhost:8000/api/teacher/essay-submissions/${selectedSubmission.id}/grade`,
+        buildApiUrl(`/teacher/essay-submissions/${selectedSubmission.id}/grade`),
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
@@ -301,6 +309,17 @@ const EssayReviewPage = () => {
                     <Clock size={12} />
                     {new Date(sub.submitted_at).toLocaleString('vi-VN')}
                   </div>
+                  <button
+                    type="button"
+                    className="submission-action"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleSelectSubmission(sub.id);
+                    }}
+                  >
+                    <Eye size={14} />
+                    Xem và chấm
+                  </button>
                 </div>
               ))
             )}
@@ -308,7 +327,7 @@ const EssayReviewPage = () => {
         </div>
 
         {/* Right Panel - Detail & Grading */}
-        <div className="detail-panel">
+        <div className="detail-panel" ref={detailPanelRef}>
           {selectedSubmission ? (
             <>
               <div className="detail-header">
@@ -357,7 +376,7 @@ const EssayReviewPage = () => {
                       <span className="file-size">{formatFileSize(selectedSubmission.file_size)}</span>
                     </div>
                     <a
-                      href={`http://localhost:8000${selectedSubmission.file_url}`}
+                      href={buildBackendUrl(selectedSubmission.file_url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-download"
@@ -366,7 +385,7 @@ const EssayReviewPage = () => {
                       Tải xuống
                     </a>
                     <a
-                      href={`http://localhost:8000${selectedSubmission.file_url}`}
+                      href={buildBackendUrl(selectedSubmission.file_url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-view"

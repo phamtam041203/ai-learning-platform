@@ -38,16 +38,19 @@ const TeacherLayout = ({ children }) => {
         <nav className="sidebar-nav">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = item.path === '/teacher/content'
+              ? location.pathname.startsWith('/teacher/content') || location.pathname.startsWith('/teacher/courses/')
+              : location.pathname === item.path;
             return (
-              <a
+              <button
                 key={item.path}
-                href={item.path}
+                type="button"
+                onClick={() => navigate(item.path)}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
                 <Icon size={20} />
                 <span>{item.label}</span>
-              </a>
+              </button>
             );
           })}
         </nav>

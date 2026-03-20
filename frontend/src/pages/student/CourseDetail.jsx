@@ -4,6 +4,7 @@ import {
   ChevronLeft, CheckCircle, Clock,
   Play, MessageSquare, Loader2, BookOpen
 } from 'lucide-react';
+import { buildApiUrl } from '../../config/api';
 import './CourseDetail.css';
 
 const CourseDetail = () => {
@@ -27,7 +28,7 @@ const CourseDetail = () => {
         const token = localStorage.getItem('token');
         
         // Fetch course details - uses /api/courses/{courseId} endpoint
-        const courseResponse = await fetch(`http://localhost:8000/api/courses/${courseId}`, {
+        const courseResponse = await fetch(buildApiUrl(`/courses/${courseId}`), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         

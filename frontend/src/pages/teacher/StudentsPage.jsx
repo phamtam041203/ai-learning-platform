@@ -180,33 +180,33 @@ const StudentsPage = () => {
               </div>
 
               <div className="student-stats">
-                <div className="stat-item">
+                <div className="student-stat-card">
                   <BookOpen size={18} />
-                  <div>
-                    <span className="stat-value">
+                  <div className="student-stat-copy">
+                    <span className="student-stat-value">
                       {student.enrolled_courses?.length || 0}
                     </span>
-                    <span className="stat-label">Khóa học</span>
+                    <span className="student-stat-label">Khóa học</span>
                   </div>
                 </div>
 
-                <div className="stat-item">
+                <div className="student-stat-card">
                   <TrendingUp size={18} />
-                  <div>
-                    <span className="stat-value">
+                  <div className="student-stat-copy">
+                    <span className="student-stat-value">
                       {student.progress_avg || 0}%
                     </span>
-                    <span className="stat-label">Tiến độ</span>
+                    <span className="student-stat-label">Tiến độ</span>
                   </div>
                 </div>
 
-                <div className="stat-item">
+                <div className="student-stat-card">
                   <Award size={18} />
-                  <div>
-                    <span className="stat-value">
+                  <div className="student-stat-copy">
+                    <span className="student-stat-value">
                       {student.grade_avg?.toFixed(1) || 'N/A'}
                     </span>
-                    <span className="stat-label">Điểm TB</span>
+                    <span className="student-stat-label">Điểm TB</span>
                   </div>
                 </div>
               </div>

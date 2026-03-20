@@ -1,0 +1,23 @@
+digraph data_link {
+	fontsize=11 rankdir=TB
+	node [color="#475569" fillcolor="#f8fafc" shape=box style="rounded,filled"]
+	pages [label="Frontend Pages
+(student/teacher/admin)" fillcolor="#e0f2fe"]
+	svc [label="frontend/src/services/api.js" fillcolor="#dbeafe"]
+	cfg [label="frontend/src/config/api.js
+(API_URL/buildApiUrl)"]
+	routers [label="FastAPI Routers" fillcolor="#ede9fe"]
+	models [label="SQLAlchemy Models" fillcolor="#fce7f3"]
+	db [label=PostgreSQL fillcolor="#fef3c7" shape=cylinder]
+	redis [label=Redis fillcolor="#fee2e2" shape=cylinder]
+	mongo [label=MongoDB fillcolor="#dcfce7" shape=cylinder]
+	ai [label=Gemini fillcolor="#ede9fe" shape=component]
+	pages -> svc
+	svc -> cfg [label="base URLs"]
+	svc -> routers [label="HTTP requests"]
+	routers -> models
+	models -> db
+	routers -> redis
+	routers -> mongo
+	routers -> ai
+}

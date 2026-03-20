@@ -33,6 +33,8 @@ const ContentPage = () => {
     title: '',
     description: '',
     course_id: '',
+    activity_type: 'quiz',
+    activity_prompt: '',
     file: null,
     video_url: ''
   });
@@ -93,9 +95,13 @@ const ContentPage = () => {
   const handleCreateLesson = async (e) => {
     e.preventDefault();
     try {
+      if (lessonForm.activity_type === 'essay' && !lessonForm.activity_prompt.trim()) {
+        showAlert('error', 'Bài học tự luận cần có yêu cầu hoặc đề bài');
+        return;
+      }
       await teacherAPI.createLesson(lessonForm);
       setShowCreateLesson(false);
-      setLessonForm({ title: '', description: '', course_id: '', file: null, video_url: '' });
+      setLessonForm({ title: '', description: '', course_id: '', activity_type: 'quiz', activity_prompt: '', file: null, video_url: '' });
       showAlert('success', 'Thêm bài học thành công!');
       fetchCourses();
     } catch (err) {
@@ -257,8 +263,8 @@ const ContentPage = () => {
                 
                 <button
                   className="btn-action"
-                  onClick={() => navigate(`/teacher/courses/${course.id}/edit`)}
-                  title="Chỉnh sửa"
+                  onClick={() => navigate(`/teacher/courses/${course.id}`)}
+                  title="Quản lý khóa học"
                 >
                   <Edit size={18} />
                 </button>
@@ -377,13 +383,38 @@ const ContentPage = () => {
               </div>
 
               <div className="form-group">
+                <label>Loại hoạt động của bài học *</label>
+                <select
+                  value={lessonForm.activity_type}
+                  onChange={e => setLessonForm({ ...lessonForm, activity_type: e.target.value })}
+                  required
+                >
+                  <option value="quiz">Bài học có quiz</option>
+                  <option value="essay">Bài học tự luận</option>
+                </select>
+              </div>
+
+              {lessonForm.activity_type === 'essay' && (
+                <div className="form-group">
+                  <label>Đề bài hoặc yêu cầu tự luận *</label>
+                  <textarea
+                    value={lessonForm.activity_prompt}
+                    onChange={e => setLessonForm({ ...lessonForm, activity_prompt: e.target.value })}
+                    placeholder="Ví dụ: Sau khi học bài này, hãy phân tích decorator trong Python và nộp ví dụ minh họa."
+                    rows={4}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="form-group">
                 <label>
                   <Upload size={18} />
-                  Upload tài liệu (PDF, DOCX)
+                  Upload tài liệu (PDF, Word, PowerPoint)
                 </label>
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx"
                   onChange={e => setLessonForm({ ...lessonForm, file: e.target.files[0] })}
                 />
               </div>

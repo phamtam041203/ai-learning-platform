@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Upload, FileText, Send, CheckCircle, Clock, AlertCircle, X, Download } from 'lucide-react';
+import { buildApiUrl, buildBackendUrl } from '../config/api';
 import './EssaySubmission.css';
 
 const EssaySubmission = ({ lessonId, lessonTitle, onSubmitSuccess }) => {
@@ -21,7 +22,7 @@ const EssaySubmission = ({ lessonId, lessonTitle, onSubmitSuccess }) => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/lessons/${lessonId}/essay-submission`,
+        buildApiUrl(`/lessons/${lessonId}/essay-submission`),
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -85,7 +86,7 @@ const EssaySubmission = ({ lessonId, lessonTitle, onSubmitSuccess }) => {
       }
 
       const response = await fetch(
-        `http://localhost:8000/api/lessons/${lessonId}/essay-submit`,
+        buildApiUrl(`/lessons/${lessonId}/essay-submit`),
         {
           method: 'POST',
           headers: {
@@ -180,7 +181,7 @@ const EssaySubmission = ({ lessonId, lessonTitle, onSubmitSuccess }) => {
                 <strong>File đã nộp:</strong> {existingSubmission.file_name}
                 {existingSubmission.file_url && (
                   <a 
-                    href={`http://localhost:8000${existingSubmission.file_url}`}
+                    href={buildBackendUrl(existingSubmission.file_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="download-link"

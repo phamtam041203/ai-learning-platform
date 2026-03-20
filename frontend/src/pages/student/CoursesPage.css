@@ -124,11 +124,10 @@
 /* ===== MAIN CONTENT ===== */
 .courses-main-wrapper {
   flex: 1;
-  margin-left: 280px;
-  width: calc(100% - 280px);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-width: 0;
 }
 
 /* ===== HEADER ===== */
@@ -745,8 +744,32 @@
 }
 
 @media (max-width: 768px) {
+  .mobile-sidebar-toggle {
+    z-index: 1420;
+  }
+
+  .sidebar-backdrop {
+    z-index: 1400;
+    background: rgba(15, 23, 42, 0.24);
+  }
+
+  .sidebar {
+    z-index: 1410;
+    pointer-events: auto;
+  }
+
+  body.student-menu-open .courses-main-wrapper {
+    filter: blur(2px);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .courses-main-wrapper {
+    width: 100%;
+  }
+
   .courses-header {
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 1.5rem 4.5rem;
   }
   
   .courses-toolbar {
@@ -776,6 +799,10 @@
 }
 
 @media (max-width: 480px) {
+  .courses-header {
+    padding: 1rem 1rem 1rem 4.25rem;
+  }
+
   .header-left .page-title {
     font-size: 1.5rem;
   }

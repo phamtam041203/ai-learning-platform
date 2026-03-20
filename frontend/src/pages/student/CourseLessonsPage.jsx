@@ -4,6 +4,7 @@ import {
   ArrowLeft, BookOpen, Play, CheckCircle, Loader,
   AlertCircle, Home, Clock, GraduationCap
 } from 'lucide-react';
+import { buildApiUrl } from '../../config/api';
 import './CourseLessonsPage.css';
 
 const CourseLessonsPage = () => {
@@ -13,7 +14,6 @@ const CourseLessonsPage = () => {
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [enrollment, setEnrollment] = useState(null);
-  const [quizResults, setQuizResults] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,13 +32,13 @@ const CourseLessonsPage = () => {
       console.log(`📚 [CourseLessonsPage] Fetching data for course ${courseId}...`);
       
       const [lessonsResponse, enrollmentResponse] = await Promise.all([
-        fetch(`http://localhost:8000/api/courses/${courseId}/lessons`, {
+        fetch(buildApiUrl(`/courses/${courseId}/lessons`), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         }),
-        fetch(`http://localhost:8000/api/courses/my-courses`, {
+        fetch(buildApiUrl('/courses/my-courses'), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -63,35 +63,6 @@ const CourseLessonsPage = () => {
       setLessons(lessonsData);
       setEnrollment(currentEnrollment);
       
-      // Fetch quiz results for all lessons
-      const results = {};
-      for (const lesson of lessonsData) {
-        if (lesson.pdf_file_name) {
-          try {
-            const quizHistoryResponse = await fetch(
-              `http://localhost:8000/api/quiz-history`,
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
-            if (quizHistoryResponse.ok) {
-              const historyData = await quizHistoryResponse.json();
-              // Find result for this lesson
-              const lessonResult = historyData.find(h => h.lesson_id === lesson.id);
-              if (lessonResult) {
-                results[lesson.id] = lessonResult;
-              }
-            }
-          } catch (err) {
-            console.log(`No quiz result for lesson ${lesson.id}`);
-          }
-        }
-      }
-      setQuizResults(results);
-      
       // Extract course info from first lesson if available
       if (lessonsData.length > 0) {
         setCourse({
@@ -114,14 +85,13 @@ const CourseLessonsPage = () => {
   };
 
   const getCompletedLessons = () => {
-    return enrollment?.completed_lessons || Object.keys(quizResults).length;
+    const completedQuizLessons = lessons.filter((lesson) => lesson.quiz_result?.completed).length;
+    return Math.max(enrollment?.completed_lessons || 0, completedQuizLessons);
   };
 
   const getTotalStudyTime = () => {
-    // Calculate total study time from completed lessons
-    const completedLessonIds = Object.keys(quizResults);
     const totalMinutes = lessons
-      .filter(l => completedLessonIds.includes(l.id.toString()))
+      .filter((lesson) => lesson.quiz_result?.completed)
       .reduce((sum, l) => sum + (l.duration_minutes || 30), 0);
     
     const hours = Math.floor(totalMinutes / 60);
@@ -240,10 +210,10 @@ const CourseLessonsPage = () => {
           ) : (
             <div className="lessons-grid">
               {lessons.map((lesson, index) => {
-                const quizResult = quizResults[lesson.id];
-                const isCompleted = !!quizResult;
-                const score = quizResult?.score || 0;
-                const passed = score >= 70;
+                const quizResult = lesson.quiz_result;
+                const isCompleted = Boolean(quizResult?.completed);
+                const score = quizResult?.score;
+                const passed = typeof score === 'number' ? score >= 70 : false;
                 
                 return (
                   <div key={lesson.id} className={`lesson-card ${isCompleted ? 'completed' : ''}`}>
@@ -256,7 +226,7 @@ const CourseLessonsPage = () => {
                       </p>
                       
                       <div className="lesson-meta">
-                        {lesson.quiz && (
+                        {lesson.has_quiz && (
                           <div className="meta-item">
                             <BookOpen size={16} />
                             <span>Có bài kiểm tra</span>
@@ -273,7 +243,7 @@ const CourseLessonsPage = () => {
                       {isCompleted && (
                         <div className={`quiz-score ${passed ? 'passed' : 'failed'}`}>
                           <span className="score-label">Điểm quiz:</span>
-                          <span className="score-value">{score}%</span>
+                          <span className="score-value">{Math.round(score)}%</span>
                         </div>
                       )}
                     </div>

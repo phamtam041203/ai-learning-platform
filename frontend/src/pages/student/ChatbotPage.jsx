@@ -146,9 +146,9 @@ const ChatbotPage = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="student-page-shell">
       <StudentSidebar darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
-      <div style={{ flex: 1, marginLeft: '280px', width: 'calc(100% - 280px)' }} className="chatbot-page">
+      <div className="student-page-main chatbot-page">
       {/* Header */}
       <div className="chatbot-header">
         <div className="header-left">
@@ -197,7 +197,7 @@ const ChatbotPage = () => {
             <div className="welcome-icon">
               <Sparkles className="w-12 h-12" />
             </div>
-            <h3 className="welcome-title">Xin chào! Tôi là AI Assistant</h3>
+            <h3 className="welcome-title">Xin chào! Tôi là AI Assistant VLU</h3>
             <p className="welcome-description">
               Tôi được huấn luyện bằng GPT-4 và BERT để hỗ trợ bạn học tập
             </p>

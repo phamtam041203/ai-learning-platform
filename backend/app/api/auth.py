@@ -30,6 +30,15 @@ router = APIRouter(
     tags=["Auth"]
 )
 
+CNPM_SPECIALIZATION_CODE = "CNPM"
+CNPM_MAJOR_NAME = "Công nghệ thông tin"
+
+
+def _build_cnpm_class_name(intake_year: Optional[int]) -> Optional[str]:
+    if intake_year is None:
+        return None
+    return f"CNPM-K{intake_year}"
+
 # Microsoft OAuth (Teams via Azure AD)
 oauth = OAuth()
 if settings.AZURE_AD_CLIENT_ID and settings.AZURE_AD_CLIENT_SECRET:
@@ -234,7 +243,7 @@ async def debug_check_user(email: str, db: Session = Depends(get_db)):
     }
 
 
-# ⭐ DEBUG: Check database status
+#  DEBUG: Check database status
 @router.get("/debug/db-status")
 async def debug_db_status(db: Session = Depends(get_db)):
     """DEBUG: Check database tables and counts"""
@@ -392,21 +401,17 @@ async def register_student(data: StudentRegister, db: Session = Depends(get_db))
     db.add(user)
     db.flush()
 
-    # ⭐ Convert specialization from Vietnamese text to code
-    specialization_to_code = {
-        "Công nghệ phần mềm": "CNPM",
-        "Công nghệ dữ liệu": "CNDL",
-        "An ninh mạng": "ANM",
-    }
-    specialization_code = specialization_to_code.get(data.specialization, "CNPM")
+    specialization_code = CNPM_SPECIALIZATION_CODE
+    major_name = CNPM_MAJOR_NAME
+    class_name = _build_cnpm_class_name(data.intake_year) or data.class_name
 
-    # Create student profile with specialization CODE (not Vietnamese text)
+    # Create student profile with fixed CNPM specialization for the current phase
     profile = StudentProfile(
         user_id=user.id,
         student_id=generated_student_id,
-        major=data.major,
-        specialization=specialization_code,  # ⭐ Use code, not Vietnamese text
-        class_name=data.class_name,
+        major=major_name,
+        specialization=specialization_code,
+        class_name=class_name,
         intake_year=data.intake_year,
         phone=data.phone,
         education_type=data.education_type or "0"
@@ -444,65 +449,11 @@ async def register_student(data: StudentRegister, db: Session = Depends(get_db))
 
 @router.post("/register/teacher")
 async def register_teacher(data: TeacherRegister, db: Session = Depends(get_db)):
-    """Register teacher with manual teacher_id"""
-    try:
-        # Check existing email
-        existing_user = db.query(User).filter(User.email == data.email).first()
-        if existing_user:
-            raise HTTPException(400, "Email đã được sử dụng")
-        
-        # Check existing teacher_id
-        existing_teacher = db.query(TeacherProfile).filter(
-            TeacherProfile.teacher_id == data.teacher_id
-        ).first()
-        if existing_teacher:
-            raise HTTPException(400, "Mã giảng viên đã tồn tại")
-        
-        # Create user
-        user = User(
-            email=data.email,
-            hashed_password=get_password_hash(data.password),
-            full_name=data.full_name,
-            role=UserRole.TEACHER,
-            is_active=True
-        )
-        db.add(user)
-        db.flush()
-        
-        # Create teacher profile
-        profile = TeacherProfile(
-            user_id=user.id,
-            teacher_id=data.teacher_id,
-            department=data.department,
-            position=data.position,
-            phone=data.phone
-        )
-        db.add(profile)
-        db.commit()
-        db.refresh(user)
-        db.refresh(profile)
-        
-        return {
-            "message": "Đăng ký thành công",
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
-                "role": user.role.value,
-                "is_active": user.is_active
-            },
-            "teacher_profile": {
-                "teacher_id": profile.teacher_id,
-                "department": profile.department,
-                "position": profile.position
-            }
-        }
-    except HTTPException as e:
-        db.rollback()
-        raise e
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(500, f"Registration error: {str(e)}")
+    """Public teacher self-registration is disabled. Teachers must be created by admins."""
+    raise HTTPException(
+        status_code=403,
+        detail="Đăng ký giảng viên đã bị tắt. Chỉ admin mới có quyền tạo và cấp tài khoản giảng viên."
+    )
 
 @router.post("/login")
 async def login(data: dict, db: Session = Depends(get_db)):
@@ -759,6 +710,9 @@ async def complete_teams_profile(
         )
         db.add(profile)
     else:
+        current_student_id = (profile.student_id or "").strip()
+        if current_student_id and current_student_id != student_id:
+            raise HTTPException(400, "Không được phép thay đổi MSSV")
         profile.student_id = student_id
 
     db.commit()
@@ -847,7 +801,8 @@ async def get_me(
                     "date_of_birth": profile.date_of_birth.isoformat() if profile.date_of_birth else None,
                     "gpa": profile.gpa,
                     "learning_style": profile.learning_style,
-                    "preferred_difficulty": profile.preferred_difficulty
+                    "preferred_difficulty": profile.preferred_difficulty,
+                    "avatar": profile.avatar
                 }
         elif current_user.role == UserRole.TEACHER:
             profile = db.query(TeacherProfile).filter(
@@ -867,7 +822,9 @@ async def get_me(
                 "email": current_user.email,
                 "full_name": current_user.full_name,
                 "role": current_user.role.value,
-                "is_active": current_user.is_active
+                "is_active": current_user.is_active,
+                "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+                "updated_at": current_user.updated_at.isoformat() if current_user.updated_at else None,
             },
             "profile": profile_data
         }

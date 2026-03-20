@@ -1,5 +1,8 @@
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import date, datetime
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -79,6 +82,148 @@ class IntakeAssessmentSubmission(BaseModel):
     answers: dict[str, str]
 
 
+class StudentProfileUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    student_id: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    class_name: Optional[str] = None
+    intake_year: Optional[int] = None
+
+
+def serialize_student_profile(user: User, profile: StudentProfile) -> dict:
+    return {
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role.value,
+            "is_active": user.is_active,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+        },
+        "profile": {
+            "student_id": profile.student_id,
+            "major": profile.major,
+            "specialization": profile.specialization,
+            "class_name": profile.class_name,
+            "intake_year": profile.intake_year,
+            "phone": profile.phone,
+            "address": profile.address,
+            "date_of_birth": profile.date_of_birth.isoformat() if profile.date_of_birth else None,
+            "gpa": profile.gpa,
+            "learning_style": profile.learning_style,
+            "preferred_difficulty": profile.preferred_difficulty,
+            "avatar": profile.avatar,
+        }
+    }
+
+
+def parse_optional_date(raw_value: Optional[str]) -> Optional[date]:
+    if raw_value is None:
+        return None
+
+    normalized = raw_value.strip()
+    if not normalized:
+        return None
+
+    try:
+        return date.fromisoformat(normalized)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Ngày sinh không hợp lệ. Định dạng đúng là YYYY-MM-DD") from exc
+
+
+@router.put("/profile")
+def update_student_profile(
+    payload: StudentProfileUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    profile = get_student_profile(db, user)
+
+    try:
+        if payload.full_name is not None:
+            full_name = payload.full_name.strip()
+            if len(full_name) < 2:
+                raise HTTPException(status_code=400, detail="Họ và tên phải có ít nhất 2 ký tự")
+            user.full_name = full_name
+
+        if payload.student_id is not None:
+            requested_student_id = payload.student_id.strip()
+            current_student_id = (profile.student_id or "").strip()
+            if requested_student_id != current_student_id:
+                raise HTTPException(status_code=400, detail="Không được phép thay đổi mã sinh viên")
+
+        if payload.phone is not None:
+            profile.phone = payload.phone.strip() or None
+
+        if payload.address is not None:
+            profile.address = payload.address.strip() or None
+
+        if payload.date_of_birth is not None:
+            profile.date_of_birth = parse_optional_date(payload.date_of_birth)
+
+        if payload.class_name is not None:
+            profile.class_name = payload.class_name.strip() or None
+
+        if payload.intake_year is not None:
+            if payload.intake_year < 20 or payload.intake_year > 99:
+                raise HTTPException(status_code=400, detail="Khóa học phải nằm trong khoảng 20-99")
+            profile.intake_year = payload.intake_year
+
+        db.commit()
+        db.refresh(user)
+        db.refresh(profile)
+        return serialize_student_profile(user, profile)
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/profile/avatar")
+async def upload_student_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    profile = get_student_profile(db, user)
+
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Chỉ chấp nhận file ảnh")
+
+    allowed_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+    extension = Path(file.filename or "").suffix.lower()
+    if extension not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Ảnh đại diện phải là JPG, PNG hoặc WEBP")
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="File ảnh trống")
+
+    if len(file_bytes) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Ảnh đại diện không được vượt quá 5MB")
+
+    avatars_dir = Path(__file__).resolve().parents[2] / "uploads" / "avatars"
+    avatars_dir.mkdir(parents=True, exist_ok=True)
+
+    stored_name = f"student_{user.id}_{uuid4().hex}{extension}"
+    stored_path = avatars_dir / stored_name
+    stored_path.write_bytes(file_bytes)
+
+    profile.avatar = f"/uploads/avatars/{stored_name}"
+    db.commit()
+    db.refresh(profile)
+
+    return {
+        "message": "Cập nhật ảnh đại diện thành công",
+        "avatar": profile.avatar,
+    }
+
+
 # =====================================================
 # 📚 MY COURSES
 # =====================================================
@@ -102,7 +247,7 @@ def get_courses_by_specialization(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    """Get all courses for student's specialization + all enrolled courses with enrollment status"""
+    """Get curriculum courses plus teacher-created active courses for browsing and enrollment."""
     try:
         # Get student profile
         profile = get_student_profile(db, user)
@@ -171,6 +316,15 @@ def get_courses_by_specialization(
                 ).all()
             course_dict = {c.id: c for c in spec_courses}
         
+        # Add teacher-created active courses so students can browse and join them.
+        teacher_courses = db.query(Course).filter(
+            Course.teacher_id.is_not(None),
+            Course.is_active == True,
+        ).all()
+        for course in teacher_courses:
+            if course.id not in course_dict:
+                course_dict[course.id] = course
+
         # Add any enrolled courses outside the specialization
         enrolled_course_ids_list = list(enrolled_course_ids)
         if enrolled_course_ids_list:
@@ -211,8 +365,10 @@ def get_courses_by_specialization(
             
             lock_info = {"is_locked": False, "lock_reason": None}
             course_meta = None
+            is_teacher_managed = course.teacher_id is not None
             if curriculum_state:
-                lock_info = get_course_lock_status(course.course_code, curriculum_state)
+                if not is_teacher_managed:
+                    lock_info = get_course_lock_status(course.course_code, curriculum_state)
                 course_meta = curriculum_state.get("course_by_code", {}).get(course.course_code)
 
             result.append({
@@ -228,6 +384,7 @@ def get_courses_by_specialization(
                 "thumbnail": course.thumbnail,
                 "created_at": course.created_at.isoformat() if course.created_at else None,
                 "is_enrolled": course.id in enrolled_course_ids,
+                "is_teacher_managed": is_teacher_managed,
                 "progress": progress,
                 "enrolled_count": db.query(Enrollment).filter(Enrollment.course_id == course.id).count(),
                 "is_locked": lock_info.get("is_locked"),
@@ -237,6 +394,14 @@ def get_courses_by_specialization(
                 "phase_name": curriculum_state.get("phase_by_code", {}).get(course.course_code, {}).get("name") if curriculum_state else None
             })
         
+        result.sort(key=lambda item: (
+            0 if item.get("phase_id") else 1,
+            item.get("phase_id") or 999,
+            0 if item.get("is_teacher_managed") else 1,
+            -(datetime.fromisoformat(item["created_at"]).timestamp()) if item.get("created_at") else 0,
+            item.get("course_name") or ""
+        ))
+
         return result
     except HTTPException:
         raise
@@ -288,6 +453,8 @@ def get_curriculum_status(
         phases_payload = []
         phases = curriculum.get("phases", [])
         course_details = curriculum.get("course_details", {})
+
+        current_index = curriculum_state.get("current_phase_index", curriculum_state.get("active_phase_index", 0))
 
         for idx, phase in enumerate(phases):
             # Support new structure with required_courses and elective_courses
@@ -398,6 +565,7 @@ def get_curriculum_status(
             phase_completed = required_all_done and elective_enough
 
             is_active = idx == curriculum_state.get("active_phase_index", 0)
+            is_current = idx == current_index
             
             # Combine all courses for backward compatibility
             all_courses = required_courses_payload + elective_courses_payload
@@ -408,6 +576,7 @@ def get_curriculum_status(
                 "description": phase.get("description"),
                 "is_completed": phase_completed,
                 "is_active": is_active,
+                "is_current": is_current,
                 "required_courses": required_courses_payload,
                 "elective_courses": elective_courses_payload,
                 "elective_min_select": elective_min_select,
@@ -419,6 +588,7 @@ def get_curriculum_status(
 
         active_index = curriculum_state.get("active_phase_index", 0)
         active_phase = phases[active_index] if active_index < len(phases) else None
+        current_phase = phases[current_index] if current_index < len(phases) else None
 
         return {
             "program": curriculum.get("program"),
@@ -427,6 +597,11 @@ def get_curriculum_status(
                 "id": active_phase.get("id") if active_phase else None,
                 "name": active_phase.get("name") if active_phase else None,
                 "index": active_index
+            },
+            "current_phase": {
+                "id": current_phase.get("id") if current_phase else None,
+                "name": current_phase.get("name") if current_phase else None,
+                "index": current_index
             },
             "elective": {
                 "min_select": curriculum_state.get("elective_min_select", 0),
@@ -701,10 +876,8 @@ def get_statistics(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    profile = get_student_profile(db, user)
-
     enrollments = db.query(Enrollment).filter(
-        Enrollment.student_id == profile.id
+        Enrollment.student_id == user.id
     ).all()
 
     total_courses = len(enrollments)
@@ -882,7 +1055,7 @@ def set_specialization(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    """Set student specialization (CNPM, CNDL, ANM)"""
+    """Set student specialization. Current student flow is limited to CNPM."""
     print(f"\n🎓 [SET-SPECIALIZATION] Request received")
     print(f"   User: {user.email} (ID: {user.id})")
     print(f"   Requested specialization: {request.specialization}")
@@ -891,7 +1064,7 @@ def set_specialization(
         profile = get_student_profile(db, user)
         
         specialization = request.specialization
-        valid_specializations = ['CNPM', 'CNDL', 'ANM']
+        valid_specializations = ['CNPM']
         
         if specialization not in valid_specializations:
             raise HTTPException(
@@ -900,6 +1073,9 @@ def set_specialization(
             )
         
         profile.specialization = specialization
+        profile.major = profile.major or 'Công nghệ thông tin'
+        if profile.intake_year:
+            profile.class_name = f'CNPM-K{profile.intake_year}'
         db.commit()
         
         return {

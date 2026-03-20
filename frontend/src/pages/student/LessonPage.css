@@ -799,6 +799,70 @@
   background: white;
 }
 
+.lesson-file-card {
+  margin-top: 20px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 24px;
+}
+
+.lesson-file-summary {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.lesson-file-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.lesson-file-summary h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.lesson-file-summary p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.lesson-file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.btn-open-file,
+.btn-download-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btn-open-file {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-download-file {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary);
+}
+
 .no-content {
   display: flex;
   flex-direction: column;

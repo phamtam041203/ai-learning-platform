@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { authAPI } from '../../services/api';
 import StudentSidebar from '../../components/StudentSidebar';
+import { buildApiUrl } from '../../config/api';
 import './CoursesPage.css';
 
 // Phase configurations with icons and colors
@@ -75,7 +76,7 @@ const CoursesPage = () => {
       console.log('👤 [CoursesPage] User profile loaded:', userData.email);
 
       console.log('📡 [CoursesPage] Fetching specialization courses...');
-      const coursesResponse = await fetch('http://localhost:8000/api/student/specialization-courses', {
+      const coursesResponse = await fetch(buildApiUrl('/student/specialization-courses'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -224,10 +225,10 @@ const CoursesPage = () => {
   ];
 
   return (
-    <div className="courses-page">
+    <div className="student-page-shell courses-page">
       <StudentSidebar darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
 
-      <div className="courses-main-wrapper">
+      <div className="student-page-main courses-main-wrapper">
         {/* Header */}
         <div className="courses-header">
           <div className="header-content">

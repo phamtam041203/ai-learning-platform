@@ -2,7 +2,7 @@
  * Teacher API Service
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import { API_URL } from '../config/api';
 
 // Lấy token
 const getAuthHeader = () => {
@@ -10,6 +10,45 @@ const getAuthHeader = () => {
   console.log('🔑 Getting token:', token ? 'Found' : 'Not found');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+const parseApiErrorDetail = (detail) => {
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item;
+        }
+
+        if (item?.field && item?.message) {
+          return `${item.field}: ${item.message}`;
+        }
+
+        if (item?.msg) {
+          return item.msg;
+        }
+
+        return JSON.stringify(item);
+      })
+      .join(' | ');
+  }
+
+  if (detail && typeof detail === 'object') {
+    return detail.message || JSON.stringify(detail);
+  }
+
+  return detail;
+};
+
+const normalizeCoursePayload = (courseData = {}) => ({
+  title: String(courseData.title ?? courseData.course_name ?? courseData.name ?? '').trim(),
+  description: String(courseData.description ?? courseData.course_description ?? '').trim(),
+  category: String(courseData.category ?? courseData.specialization ?? courseData.major ?? 'programming').trim() || 'programming'
+});
+
+const normalizeQuizPayload = (quizData = {}) => ({
+  ...quizData,
+  lesson_id: quizData.lesson_id ? Number(quizData.lesson_id) : null
+});
 
 // API call helper
 const apiCall = async (endpoint, options = {}) => {
@@ -32,7 +71,7 @@ const apiCall = async (endpoint, options = {}) => {
   if (!response.ok) {
     console.error(`❌ API Error: ${response.status}`, endpoint);
     const error = await response.json().catch(() => ({ detail: 'API Error' }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    throw new Error(parseApiErrorDetail(error.detail) || `HTTP ${response.status}`);
   }
 
   const data = await response.json();
@@ -55,6 +94,11 @@ const teacherAPI = {
     return apiCall('/teacher/dashboard');
   },
 
+  // Teacher analytics
+  getAnalytics: async () => {
+    return apiCall('/teacher/analytics');
+  },
+
   // Get all courses
   getCourses: async () => {
     return apiCall('/teacher/courses');
@@ -69,7 +113,22 @@ const teacherAPI = {
   createCourse: async (courseData) => {
     return apiCall('/teacher/courses', {
       method: 'POST',
-      body: JSON.stringify(courseData)
+      body: JSON.stringify(normalizeCoursePayload(courseData))
+    });
+  },
+
+  // Update course
+  updateCourse: async (courseId, courseData) => {
+    return apiCall(`/teacher/courses/${courseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(normalizeCoursePayload(courseData))
+    });
+  },
+
+  // Delete course
+  deleteCourse: async (courseId) => {
+    return apiCall(`/teacher/courses/${courseId}`, {
+      method: 'DELETE'
     });
   },
 
@@ -97,6 +156,8 @@ const teacherAPI = {
     formData.append('title', lessonData.title);
     formData.append('description', lessonData.description);
     formData.append('course_id', lessonData.course_id);
+    formData.append('activity_type', lessonData.activity_type || 'quiz');
+    formData.append('activity_prompt', lessonData.activity_prompt || '');
     
     if (lessonData.file) {
       formData.append('file', lessonData.file);
@@ -129,6 +190,9 @@ const teacherAPI = {
     formData.append('description', quizData.description);
     formData.append('course_id', quizData.course_id);
     formData.append('docx_file', quizData.docx_file);
+    if (quizData.lesson_id) {
+      formData.append('lesson_id', Number(quizData.lesson_id));
+    }
 
     const token = localStorage.getItem('token') || localStorage.getItem('access_token');
     const response = await fetch(`${API_URL}/teacher/quizzes/from-docx`, {
@@ -145,6 +209,39 @@ const teacherAPI = {
     }
 
     return response.json();
+  },
+
+  // Get quizzes for a course
+  getCourseQuizzes: async (courseId) => {
+    return apiCall(`/teacher/courses/${courseId}/quizzes`);
+  },
+
+  // Get quiz detail
+  getQuizDetail: async (quizId) => {
+    return apiCall(`/teacher/quizzes/${quizId}`);
+  },
+
+  // Create quiz manually
+  createQuiz: async (quizData) => {
+    return apiCall('/teacher/quizzes', {
+      method: 'POST',
+      body: JSON.stringify(normalizeQuizPayload(quizData))
+    });
+  },
+
+  // Update quiz
+  updateQuiz: async (quizId, quizData) => {
+    return apiCall(`/teacher/quizzes/${quizId}`, {
+      method: 'PUT',
+      body: JSON.stringify(normalizeQuizPayload(quizData))
+    });
+  },
+
+  // Delete quiz
+  deleteQuiz: async (quizId) => {
+    return apiCall(`/teacher/quizzes/${quizId}`, {
+      method: 'DELETE'
+    });
   }
 };
 

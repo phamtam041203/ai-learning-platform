@@ -1,0 +1,269 @@
+# RUN COMMANDS — AI Learning Platform
+
+> **Máy:** Windows, PowerShell  
+> **Docker:** `C:\Program Files\Docker\Docker\resources\bin\docker.exe`  
+> **Thư mục gốc:** `d:\KLTN\ai-learning-platform`
+
+---
+
+## 0. Chuẩn bị một lần duy nhất
+
+```powershell
+# Vào thư mục gốc
+cd d:\KLTN\ai-learning-platform
+
+# Thêm Docker vào PATH (nếu lệnh docker chưa nhận)
+$env:PATH = "C:\Program Files\Docker\Docker\resources\bin;" + $env:PATH
+
+# Kiểm tra Docker hoạt động
+docker version
+docker compose version
+```
+
+---
+
+## 1. DEV — phát triển local (hot-reload)
+
+| Service    | URL                               |
+|------------|-----------------------------------|
+| Frontend   | http://localhost:5173             |
+| Backend    | http://localhost:8000             |
+| API docs   | http://localhost:8000/docs        |
+
+```powershell
+cd d:\KLTN\ai-learning-platform
+
+# Khởi động (build lần đầu)
+docker compose --env-file .env.docker up --build
+
+# Khởi động nhanh (không build lại)
+docker compose --env-file .env.docker up
+
+# Chạy ngầm (background)
+docker compose --env-file .env.docker up -d
+
+# Dừng
+docker compose --env-file .env.docker down
+
+# Dừng và xóa volume (reset database)
+docker compose --env-file .env.docker down -v
+```
+
+---
+
+## 2. PROD LOCAL — production build trên máy
+
+| Service    | URL                               |
+|------------|-----------------------------------|
+| Frontend   | http://localhost:3000             |
+| Backend    | http://localhost:8000             |
+
+```powershell
+cd d:\KLTN\ai-learning-platform
+
+# Khởi động
+docker compose -f docker/docker-compose.prod.yml --env-file .env.docker up -d --build
+
+# Dừng
+docker compose -f docker/docker-compose.prod.yml --env-file .env.docker down
+```
+
+---
+
+## 3. VPS STACK — public qua IP / Cloudflare (port 80)
+
+| Service    | URL                               |
+|------------|-----------------------------------|
+| Web        | http://localhost                  |
+| Web public | http://1.54.153.94                |
+
+> File env dùng: `.env.vps`  
+> Chỉ port **80** được expose ra ngoài.
+
+```powershell
+cd d:\KLTN\ai-learning-platform
+
+# --- Dùng script tiện lợi ---
+
+# Deploy lần đầu / rebuild
+scripts\deploy.bat
+
+# Dừng
+scripts\stop.bat
+
+# Khởi động lại (không rebuild)
+scripts\start.bat
+
+
+# --- Hoặc gõ tay ---
+
+# Khởi động
+docker compose -f docker/docker-compose.vps.yml --env-file .env.vps up -d --build
+
+# Dừng
+docker compose -f docker/docker-compose.vps.yml --env-file .env.vps down
+
+# Xem log
+docker compose -f docker/docker-compose.vps.yml --env-file .env.vps logs -f
+```
+
+---
+
+## 4. CLOUDFLARE QUICK TUNNEL — URL public tạm thời
+
+> URL đổi mỗi lần restart. Không cần port forwarding, không cần domain.
+
+```powershell
+cd d:\KLTN\ai-learning-platform
+
+# Chạy tunnel (cần VPS stack đang chạy ở port 80 trước)
+scripts\start-cloudflare-tunnel.bat
+
+# Hoặc gõ tay
+tools\cloudflared\cloudflared.exe tunnel --url http://localhost:80
+```
+
+**Quy trình:**
+1. Chạy VPS stack trước (`scripts\deploy.bat`)
+2. Chạy tunnel (`scripts\start-cloudflare-tunnel.bat`)
+3. Copy URL `https://xxxx.trycloudflare.com` hiển thị trong terminal
+4. Chia sẻ URL đó cho người dùng
+
+---
+
+## 5. CLOUDFLARE STABLE TUNNEL — URL cố định (cần domain)
+
+> Yêu cầu: có domain trỏ về Cloudflare. Nếu chưa có domain hãy dùng Quick Tunnel.
+
+```powershell
+cd d:\KLTN\ai-learning-platform
+
+# Bước 1: Đăng nhập Cloudflare (1 lần)
+scripts\cloudflare-login.bat
+
+# Bước 2: Tạo tunnel (1 lần)
+scripts\cloudflare-create-stable-tunnel.bat
+
+# Bước 3: Chạy tunnel
+scripts\start-cloudflare-stable-tunnel.bat
+
+# Dừng tunnel
+scripts\stop-cloudflare-tunnel.bat
+```
+
+---
+
+## 6. Build frontend thủ công (không qua Docker)
+
+```powershell
+cd d:\KLTN\ai-learning-platform\frontend
+
+# Cài dependencies
+npm install
+
+# Dev server
+npm run dev
+
+# Build production
+npm run build
+
+# Preview build
+npm run preview
+```
+
+---
+
+## 7. Backend chạy thủ công (không qua Docker)
+
+```powershell
+# Kích hoạt virtualenv
+d:\KLTN\venv\Scripts\Activate.ps1
+
+cd d:\KLTN\ai-learning-platform\backend
+
+# Cài dependencies
+pip install -r requirements.txt
+
+# Chạy server
+python run.py
+# hoặc
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+---
+
+## 8. Kiểm tra health
+
+```powershell
+# Backend health
+curl http://localhost:8000/api/test
+curl http://localhost:8000/health
+
+# Frontend (VPS stack)
+curl http://localhost
+
+# Qua public IP
+curl http://1.54.153.94
+curl http://1.54.153.94/api/test
+```
+
+---
+
+## 9. Xem log
+
+```powershell
+cd d:\KLTN\ai-learning-platform
+
+# Dev stack
+docker compose --env-file .env.docker logs -f
+docker compose --env-file .env.docker logs backend -f
+docker compose --env-file .env.docker logs frontend -f
+
+# VPS stack
+docker compose -f docker/docker-compose.vps.yml --env-file .env.vps logs -f
+docker compose -f docker/docker-compose.vps.yml --env-file .env.vps logs backend -f
+
+# Xem container đang chạy
+docker ps
+
+# Xem tất cả container (kể cả stopped)
+docker ps -a
+```
+
+---
+
+## 10. Troubleshoot nhanh
+
+```powershell
+# Rebuild hoàn toàn (xóa cache)
+docker compose --env-file .env.docker build --no-cache
+
+# Xem tài nguyên Docker
+docker system df
+
+# Dọn dẹp image/container không dùng
+docker system prune
+
+# Dọn dẹp kể cả volume (CẢNH BÁO: mất data DB)
+docker system prune -a --volumes
+
+# Restart 1 service
+docker compose --env-file .env.docker restart backend
+
+# Vào shell trong container backend
+docker compose --env-file .env.docker exec backend bash
+
+# Chạy migration DB
+docker compose --env-file .env.docker exec backend alembic upgrade head
+```
+
+---
+
+## Tóm tắt stack và port
+
+| Stack          | Lệnh khởi động                  | Frontend      | Backend       | Dùng khi          |
+|----------------|----------------------------------|---------------|---------------|-------------------|
+| Dev            | `docker compose up`              | :5173         | :8000         | Phát triển local  |
+| Prod local     | `docker-compose.prod.yml up`     | :3000         | :8000         | Test production   |
+| VPS / Public   | `scripts\deploy.bat`             | :80           | internal      | Cho người dùng    |
+| Quick Tunnel   | `scripts\start-cloudflare-tunnel.bat` | URL Cloudflare | —        | Public không IP   |

@@ -2,8 +2,12 @@
 FastAPI Main Application
 Đồ án tốt nghiệp - Phạm Thành Tâm
 """
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import inspect, text
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 import threading
@@ -62,6 +66,21 @@ app = FastAPI(
     # lifespan=lifespan  # Disabled due to shutdown issues
 )
 
+uploads_dir = Path(__file__).resolve().parents[1] / "uploads"
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
+
+def ensure_runtime_columns() -> None:
+    """Add required columns for deployments that rely on create_all instead of migrations."""
+    inspector = inspect(engine)
+    student_profile_columns = {column["name"] for column in inspector.get_columns("student_profiles")}
+
+    if "avatar" not in student_profile_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE student_profiles ADD COLUMN avatar VARCHAR(500)"))
+        print("✅ Added student_profiles.avatar column")
+
 # Session middleware for OAuth state handling
 app.add_middleware(
     SessionMiddleware,
@@ -73,6 +92,7 @@ app.add_middleware(
 async def startup_event():
     print("🚀 Starting up - Creating database tables...")
     Base.metadata.create_all(bind=engine)
+    ensure_runtime_columns()
     # Ensure default admin account
     db = SessionLocal()
     try:
@@ -97,12 +117,7 @@ async def startup_event():
 # CORS - Cho phép Frontend (MOVED BEFORE ROUTERS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://localhost:5173"
-    ],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

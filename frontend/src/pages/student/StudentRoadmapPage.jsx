@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Route, Flag, CheckCircle2, Lock, BookOpen, Sparkles, BookMarked, Bookmark, ChevronDown } from 'lucide-react';
 import StudentSidebar from '../../components/StudentSidebar';
+import Loading from '../../components/common/Loading';
 import { studentAPI } from '../../services/api';
 import './StudentRoadmap.css';
 
 const StudentRoadmapPage = () => {
-  const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') === 'true');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,7 +50,7 @@ const StudentRoadmapPage = () => {
   }, []);
 
   const activePhase = useMemo(() => {
-    return roadmap?.phases?.find(phase => phase.is_active) || null;
+    return roadmap?.phases?.find(phase => phase.is_current) || roadmap?.phases?.find(phase => phase.is_active) || null;
   }, [roadmap]);
 
   const togglePhase = (phaseId) => {
@@ -133,24 +132,14 @@ const StudentRoadmapPage = () => {
 
         <div className="roadmap-body">
           {loading ? (
-            <div className="roadmap-empty">Đang tải dữ liệu...</div>
+            <Loading
+              title="Dang tai lo trinh hoc"
+              subtitle="Dang cap nhat giai doan hien tai, dieu kien mo khoa va danh sach mon hoc."
+            />
           ) : error ? (
             <div className="roadmap-empty error">{error}</div>
           ) : (
             <>
-              <div className="roadmap-intake-callout">
-                <div>
-                  <span className="roadmap-intake-kicker">AI Personalization</span>
-                  <h3>Bài test năng lực đã có trang riêng</h3>
-                  <p>
-                    Vào mục Test Năng Lực để làm bài đánh giá đầu vào, sau đó Gemini sẽ phân tích năng lực hiện tại và mở khóa các khu vực phù hợp trên bản đồ 3D.
-                  </p>
-                </div>
-                <button className="roadmap-intake-button" onClick={() => navigate('/student/skill-assessment')}>
-                  Mở test năng lực
-                </button>
-              </div>
-
               <div className="roadmap-summary">
                 <div className="summary-card">
                   <div className="summary-label">Chương trình</div>
@@ -221,15 +210,15 @@ const StudentRoadmapPage = () => {
                   const isExpanded = expandedPhases[phase.id];
                   
                   return (
-                    <div className={`phase-card ${phase.is_active ? 'active' : ''} ${isExpanded ? 'expanded' : ''}`} key={phase.id}>
+                    <div className={`phase-card ${(phase.is_current || phase.is_active) ? 'active' : ''} ${isExpanded ? 'expanded' : ''}`} key={phase.id}>
                       <div className="phase-header" onClick={() => togglePhase(phase.id)}>
                         <div className="phase-header-content">
                           <div>
                             <h3>{phase.name}</h3>
                             <p>{phase.description}</p>
                           </div>
-                          <span className={`phase-status ${phase.is_completed ? 'completed' : phase.is_active ? 'active' : 'locked'}`}>
-                            {phase.is_completed ? 'Đã hoàn thành' : phase.is_active ? 'Đang học' : 'Chưa mở'}
+                          <span className={`phase-status ${phase.is_completed ? 'completed' : (phase.is_current || phase.is_active) ? 'active' : 'locked'}`}>
+                            {phase.is_completed ? 'Đã hoàn thành' : (phase.is_current || phase.is_active) ? 'Đang học' : 'Chưa mở'}
                           </span>
                         </div>
                         <ChevronDown className={`collapse-icon ${isExpanded ? 'expanded' : ''}`} size={20} />

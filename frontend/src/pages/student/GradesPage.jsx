@@ -82,18 +82,14 @@ const GradesPage = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div className="student-page-shell">
       <StudentSidebar darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
 
-      <div style={{ flex: 1, marginLeft: '280px', width: 'calc(100% - 280px)' }}>
+      <div className="student-page-main">
         {/* Header */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '2rem',
-          borderBottom: '1px solid var(--border-color)'
-        }}>
-          <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        <div className="student-page-header">
+          <div className="student-page-header-inner">
+            <div className="student-page-title-row">
               <Award size={32} style={{ color: 'var(--primary)' }} />
               <h1 style={{
                 fontSize: '2rem',
@@ -111,7 +107,7 @@ const GradesPage = () => {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+        <div className="student-page-body">
           {loading ? (
             <div style={{ textAlign: 'center', padding: '3rem' }}>
               <p style={{ color: 'var(--text-secondary)' }}>Đang tải điểm số...</p>

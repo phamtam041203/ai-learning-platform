@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SpecializationModal from '../../components/SpecializationModal';
+import { API_BASE_URL } from '../../config/api';
 import './LoginPage.css';
 
 const TeamsCallbackPage = () => {
@@ -32,8 +33,7 @@ const TeamsCallbackPage = () => {
         localStorage.setItem('token', accessToken);
         localStorage.setItem('access_token', accessToken);
 
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -75,7 +75,7 @@ const TeamsCallbackPage = () => {
             return;
           }
 
-          const validSpecializations = ['CNPM', 'CNDL', 'ANM'];
+          const validSpecializations = ['CNPM'];
           const hasValidSpecialization = validSpecializations.includes(currentUser.specialization);
 
           if (!currentUser.specialization || !hasValidSpecialization) {

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { authAPI } from '../../services/api';
 import StudentSidebar from '../../components/StudentSidebar';
+import { buildApiUrl } from '../../config/api';
 import './CoursesPage.css';
 import './PhaseGroups.css';
 
@@ -78,7 +79,7 @@ const BrowseCoursesPage = () => {
 
       // Fetch curriculum data
       console.log('📚 [BrowseCoursesPage] Fetching curriculum...');
-      const curriculumResponse = await fetch('http://localhost:8000/api/curriculum/cnpm', {
+      const curriculumResponse = await fetch(buildApiUrl('/curriculum/cnpm'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -92,7 +93,7 @@ const BrowseCoursesPage = () => {
       }
 
       console.log('📡 [BrowseCoursesPage] Fetching specialization courses...');
-      const coursesResponse = await fetch('http://localhost:8000/api/student/specialization-courses', {
+      const coursesResponse = await fetch(buildApiUrl('/student/specialization-courses'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -126,7 +127,7 @@ const BrowseCoursesPage = () => {
       const token = localStorage.getItem('token');
 
       console.log(`📝 [BrowseCoursesPage] Enrolling course ${courseId}...`);
-      const response = await fetch(`http://localhost:8000/api/courses/${courseId}/enroll`, {
+      const response = await fetch(buildApiUrl(`/courses/${courseId}/enroll`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -170,8 +171,10 @@ const BrowseCoursesPage = () => {
   };
 
   const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.course_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         course.course_code?.toLowerCase().includes(searchQuery.toLowerCase());
+    const normalizedSearch = searchQuery.toLowerCase();
+    const matchesSearch = course.course_name?.toLowerCase().includes(normalizedSearch) ||
+                         course.course_code?.toLowerCase().includes(normalizedSearch) ||
+                         course.class_code?.toLowerCase().includes(normalizedSearch);
     
     if (selectedFilter === 'all') return matchesSearch;
     if (selectedFilter === 'beginner') return matchesSearch && course.level === 'beginner';
@@ -188,6 +191,7 @@ const BrowseCoursesPage = () => {
     }
 
     const grouped = {};
+    const groupedCourseIds = new Set();
     
     curriculum.phases.forEach(phase => {
       const phaseRequired = [];
@@ -196,8 +200,10 @@ const BrowseCoursesPage = () => {
       filteredCourses.forEach(course => {
         if (phase.required_courses.includes(course.course_code)) {
           phaseRequired.push(course);
+          groupedCourseIds.add(course.id);
         } else if (phase.elective_courses.includes(course.course_code)) {
           phaseElective.push(course);
+          groupedCourseIds.add(course.id);
         }
       });
 
@@ -209,6 +215,19 @@ const BrowseCoursesPage = () => {
         };
       }
     });
+
+    const ungrouped = filteredCourses.filter(course => !groupedCourseIds.has(course.id));
+    if (ungrouped.length > 0) {
+      grouped.ungrouped = {
+        phase: {
+          id: 'ungrouped',
+          name: 'Khóa học giảng viên mở',
+          description: 'Các khóa học do giảng viên tạo ngoài lộ trình curriculum tiêu chuẩn.'
+        },
+        required: ungrouped,
+        elective: []
+      };
+    }
 
     return grouped;
   };
@@ -268,10 +287,10 @@ const BrowseCoursesPage = () => {
   ];
 
   return (
-    <div className="courses-page">
+    <div className="student-page-shell courses-page">
       <StudentSidebar darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
 
-      <div className="courses-main-wrapper">
+      <div className="student-page-main courses-main-wrapper">
         {/* Header */}
         <div className="courses-header">
           <div className="header-content">
@@ -384,7 +403,7 @@ const BrowseCoursesPage = () => {
       </div>
 
       {/* Results Info */}
-      <div className="results-info">
+        <div className="results-info">
         <p>
           Hiển thị <strong>{filteredCourses.length}</strong> khóa học có thể đăng ký
           {searchQuery && ` cho "${searchQuery}"`}
@@ -407,6 +426,7 @@ const BrowseCoursesPage = () => {
         <div className="phases-container">
           {Object.keys(groupedCourses).map(phaseId => {
             const { phase, required, elective } = groupedCourses[phaseId];
+            const isUngroupedSection = phaseId === 'ungrouped';
             
             return (
               <div key={phaseId} className="phase-group">
@@ -421,12 +441,14 @@ const BrowseCoursesPage = () => {
                 {/* Required Courses Section */}
                 {required.length > 0 && (
                   <div className="course-type-section">
-                    <div className="section-header required">
+                    <div className={`section-header ${isUngroupedSection ? 'elective' : 'required'}`}>
                       <div className="section-title">
-                        <CheckCircle size={20} />
-                        <h3>Môn bắt buộc ({required.length} môn)</h3>
+                        {isUngroupedSection ? <BookPlus size={20} /> : <CheckCircle size={20} />}
+                        <h3>{isUngroupedSection ? `Có thể đăng ký (${required.length} khóa học)` : `Môn bắt buộc (${required.length} môn)`}</h3>
                       </div>
-                      <span className="requirement-badge required">Phải hoàn thành tất cả</span>
+                      <span className={`requirement-badge ${isUngroupedSection ? 'elective' : 'required'}`}>
+                        {isUngroupedSection ? 'Khóa học ngoài curriculum' : 'Phải hoàn thành tất cả'}
+                      </span>
                     </div>
                     
                     <div className={`courses-container ${viewMode}`}>

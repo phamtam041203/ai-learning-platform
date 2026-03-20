@@ -11,7 +11,8 @@
 
 .advisor-content {
   flex: 1;
-  margin-left: 250px;
+  margin-left: 280px;
+  min-width: 0;
   padding: 20px;
   position: relative;
 }
@@ -19,7 +20,7 @@
 .advisor-container {
   display: flex;
   gap: 20px;
-  height: calc(100vh - 40px);
+  min-height: calc(100dvh - 40px);
   max-width: 1600px;
   margin: 0 auto;
 }
@@ -797,6 +798,76 @@
   .analysis-panel.hide {
     max-height: 60px;
     width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .advisor-content {
+    width: 100%;
+    padding: 16px 12px 12px;
+    padding-top: 72px;
+  }
+
+  .advisor-container {
+    gap: 12px;
+    min-height: calc(100dvh - 84px);
+  }
+
+  .floating-toggle-btn {
+    left: auto;
+    right: 16px;
+    top: 16px;
+    transform: none;
+  }
+
+  .floating-toggle-btn:hover {
+    transform: scale(1.05);
+  }
+
+  .chat-header {
+    padding: 16px;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-info {
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .header-info h2 {
+    font-size: 20px;
+  }
+
+  .messages-area,
+  .quick-questions,
+  .chat-input-form,
+  .plan-tab-content,
+  .analysis-content {
+    padding: 16px;
+  }
+
+  .message-bubble {
+    max-width: 88%;
+  }
+
+  .input-wrapper {
+    flex-wrap: wrap;
+  }
+
+  .input-wrapper button[type="submit"] {
+    width: 100%;
+  }
+
+  .advisor-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0 12px;
+  }
+
+  .advisor-tab {
+    flex: 0 0 auto;
+    padding: 12px 14px;
   }
 }
 

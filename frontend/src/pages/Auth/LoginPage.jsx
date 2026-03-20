@@ -4,10 +4,10 @@ import './LoginPage.css';
 import { Link } from 'react-router-dom';
 import axios from "axios";
 import SpecializationModal from '../../components/SpecializationModal';
+import { API_BASE_URL } from '../../config/api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
   const [showPassword, setShowPassword] = useState(false);
   const [showSpecializationModal, setShowSpecializationModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -53,7 +53,7 @@ const LoginPage = () => {
   };
 
   const handleSpecializationSelect = (specialization) => {
-    console.log('✅ Specialization selected:', specialization);
+    console.log(' Specialization selected:', specialization);
     setShowSpecializationModal(false);
     navigate('/student/dashboard', { replace: true });
   };
@@ -83,7 +83,7 @@ const LoginPage = () => {
       // ===============================
       // STEP 1: LOGIN
       // ===============================
-      const response = await fetch(`${apiBaseUrl}/api/auth/login-basic`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login-basic`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ const LoginPage = () => {
         return;
       }
 
-      console.log('✅ Login successful!');
+      console.log(' Login successful!');
 
       // ===============================
       // 🔥 CLEAR DỮ LIỆU CŨ
@@ -130,12 +130,12 @@ const LoginPage = () => {
       // ⭐ Lưu token vào localStorage (luôn luôn để API calls hoạt động)
       localStorage.setItem('token', token);
       localStorage.setItem('access_token', token);
-      console.log('✅ Token saved to localStorage');
+      console.log(' Token saved to localStorage');
       
       // Nếu remember me, cũng lưu vào sessionStorage
       if (formData.rememberMe) {
         sessionStorage.setItem('token', token);
-        console.log('✅ Token also saved to sessionStorage (remember me)');
+        console.log(' Token also saved to sessionStorage (remember me)');
       }
 
       // ===============================
@@ -173,9 +173,8 @@ const LoginPage = () => {
       console.log('🎯 User role detected:', currentUser.role);
 
       if (currentUser.role === 'student') {
-        // ⭐ Kiểm tra xem sinh viên đã chọn chuyên ngành HỢPVALUE chưa
-        // Valid specializations are the codes: CNPM, CNDL, ANM
-        const validSpecializations = ['CNPM', 'CNDL', 'ANM'];
+        // ⭐ Giai đoạn hiện tại chỉ hỗ trợ CNPM
+        const validSpecializations = ['CNPM'];
         const hasValidSpecialization = validSpecializations.includes(currentUser.specialization);
         
         if (!currentUser.specialization || !hasValidSpecialization) {
@@ -209,7 +208,7 @@ const LoginPage = () => {
 
   const handleTeamsLogin = () => {
     const frontendRedirect = `${window.location.origin}/auth/teams/callback`;
-    window.location.href = `${apiBaseUrl}/api/auth/teams/login?redirect=${encodeURIComponent(frontendRedirect)}`;
+    window.location.href = `${API_BASE_URL}/api/auth/teams/login?redirect=${encodeURIComponent(frontendRedirect)}`;
   };
 
   // ============================================
@@ -431,10 +430,12 @@ const LoginPage = () => {
                 <UserIcon />
                 <span>Đăng ký Sinh viên</span>
               </a>
-              <a href="/register/teacher" className="register-link teacher">
-                <GraduationCapIcon />
-                <span>Đăng ký Giảng viên</span>
-              </a>
+            </div>
+
+            <div className="back-to-home">
+              <p className="back-link" style={{ cursor: 'default' }}>
+                Tài khoản giảng viên do admin tạo và cấp quyền trong hệ thống
+              </p>
             </div>
 
             {/* Back to home */}

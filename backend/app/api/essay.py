@@ -16,6 +16,12 @@ from app.dependencies import get_current_user
 
 router = APIRouter()
 
+
+def _course_display_title(course: Optional[Course]) -> Optional[str]:
+    if not course:
+        return None
+    return getattr(course, "course_name", None) or getattr(course, "title", None)
+
 # Upload directory for essay files
 ESSAY_UPLOAD_DIR = Path("uploads/essays")
 ESSAY_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -265,7 +271,7 @@ async def get_course_essay_submissions(
     return {
         "course": {
             "id": course.id,
-            "title": course.title or course.course_name,
+            "title": _course_display_title(course),
             "code": course.course_code
         },
         "submissions": result,
@@ -307,7 +313,7 @@ async def get_essay_submission_detail(
         } if lesson else None,
         "course": {
             "id": course.id,
-            "title": course.title or course.course_name,
+            "title": _course_display_title(course),
             "code": course.course_code
         } if course else None,
         "text_content": submission.text_content,
@@ -396,12 +402,15 @@ async def get_all_pending_essays(
         student = db.query(User).filter(User.id == sub.student_id).first()
         lesson = db.query(Lesson).filter(Lesson.id == sub.lesson_id).first()
         course = db.query(Course).filter(Course.id == sub.course_id).first()
+        course_title = None
+        if course:
+            course_title = getattr(course, "course_name", None) or getattr(course, "title", None)
         
         result.append({
             "id": sub.id,
             "student_name": student.full_name if student else "Unknown",
             "lesson_title": lesson.title if lesson else "Unknown",
-            "course_title": course.title or course.course_name if course else "Unknown",
+            "course_title": course_title or "Unknown",
             "course_code": course.course_code if course else None,
             "submitted_at": sub.submitted_at.isoformat() if sub.submitted_at else None,
             "has_file": bool(sub.file_url),

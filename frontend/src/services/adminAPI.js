@@ -2,11 +2,23 @@
  * Admin API Service
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import { API_URL } from '../config/api';
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token') || localStorage.getItem('access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const formatApiError = (detail, fallbackMessage) => {
+  if (Array.isArray(detail)) {
+    return detail.map((item) => item?.msg || item?.message || JSON.stringify(item)).join(' | ');
+  }
+
+  if (detail && typeof detail === 'object') {
+    return detail.message || detail.msg || JSON.stringify(detail);
+  }
+
+  return detail || fallbackMessage;
 };
 
 const apiCall = async (endpoint, options = {}) => {
@@ -26,7 +38,7 @@ const apiCall = async (endpoint, options = {}) => {
   const response = await fetch(`${API_URL}${endpoint}`, config);
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'API Error' }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    throw new Error(formatApiError(error.detail, `HTTP ${response.status}`));
   }
 
   return response.json();
@@ -76,7 +88,7 @@ const adminAPI = {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Create failed' }));
-      throw new Error(error.detail || 'Create failed');
+      throw new Error(formatApiError(error.detail, 'Create failed'));
     }
 
     return response.json();
@@ -101,7 +113,7 @@ const adminAPI = {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Create failed' }));
-      throw new Error(error.detail || 'Create failed');
+      throw new Error(formatApiError(error.detail, 'Create failed'));
     }
 
     return response.json();
@@ -122,7 +134,7 @@ const adminAPI = {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Update failed' }));
-      throw new Error(error.detail || 'Update failed');
+      throw new Error(formatApiError(error.detail, 'Update failed'));
     }
 
     return response.json();
@@ -142,7 +154,7 @@ const adminAPI = {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Delete failed' }));
-      throw new Error(error.detail || 'Delete failed');
+      throw new Error(formatApiError(error.detail, 'Delete failed'));
     }
 
     return response.json();
@@ -167,7 +179,7 @@ const adminAPI = {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Create failed' }));
-      throw new Error(error.detail || 'Create failed');
+      throw new Error(formatApiError(error.detail, 'Create failed'));
     }
 
     return response.json();

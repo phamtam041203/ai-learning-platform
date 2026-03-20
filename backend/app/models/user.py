@@ -52,6 +52,7 @@ class StudentProfile(Base):
     education_type = Column(String(10))  # ⭐ Thêm field này
     learning_style = Column(String(50))  # visual, auditory, kinesthetic, reading
     preferred_difficulty = Column(String(50))  # easy, medium, hard
+    avatar = Column(String(500))
 
     user = relationship("User", back_populates="student_profile")
 

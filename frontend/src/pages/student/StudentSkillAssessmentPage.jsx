@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain, CheckCircle2, ClipboardList, Gauge, Sparkles } from 'lucide-react';
 import StudentSidebar from '../../components/StudentSidebar';
+import Loading from '../../components/common/Loading';
 import { studentAPI } from '../../services/api';
 import {
   clearStoredPersonalization,
@@ -132,7 +133,7 @@ const StudentSkillAssessmentPage = () => {
               </div>
               <div>
                 <h1>Test Năng Lực Sinh Viên</h1>
-                <p>Đánh giá năng lực đầu vào để Gemini mở khóa đúng chặng học, gợi ý cách học và thiết lập độ khó khởi đầu.</p>
+                <p>Đánh giá năng lực đầu vào để VLU AI mở khóa đúng chặng học, gợi ý cách học và thiết lập độ khó khởi đầu.</p>
               </div>
             </div>
           </div>
@@ -165,7 +166,7 @@ const StudentSkillAssessmentPage = () => {
               <div className="skill-result-hero">
                 <div>
                   <span className="skill-result-kicker">Phân tích hoàn tất</span>
-                  <h2>Gemini đã tạo hồ sơ năng lực cá nhân cho bạn</h2>
+                  <h2>VLU AI đã tạo hồ sơ năng lực cá nhân cho bạn</h2>
                   <p>{analysis.ai_summary}</p>
                 </div>
                 <div className="skill-result-score">
@@ -231,7 +232,11 @@ const StudentSkillAssessmentPage = () => {
           ) : (
             <div className="skill-assessment-form">
               {loading ? (
-                <div className="skill-assessment-alert">Đang tải bài test năng lực...</div>
+                <Loading
+                  compact
+                  title="Dang tai bai test nang luc"
+                  subtitle="Dang chuan bi bo cau hoi dau vao de AI phan tich ho so hoc tap cua ban."
+                />
               ) : groupedQuestions.length === 0 ? (
                 <div className="skill-assessment-alert error">Chưa có dữ liệu câu hỏi từ hệ thống. Hãy thử lại sau khi backend được khởi động lại.</div>
               ) : (
@@ -283,7 +288,7 @@ const StudentSkillAssessmentPage = () => {
                       <span> câu đã hoàn thành</span>
                     </div>
                     <button className="assessment-primary-button" disabled={!allAnswered || submitting} onClick={handleSubmit}>
-                      {submitting ? 'Gemini đang phân tích...' : 'Nộp bài test năng lực'}
+                      {submitting ? 'VLU AI đang phân tích...' : 'Nộp bài test năng lực'}
                     </button>
                   </div>
                 </>

@@ -1,180 +1,205 @@
-import { Link } from 'react-router-dom'
-import './LandingPage.css'
+import { Link } from 'react-router-dom';
+import './LandingPage.css';
+
+const heroHighlights = [
+  { value: 'AI + LMS', label: 'học tập thông minh' },
+  { value: '5 Giai đoạn', label: 'lộ trình rõ ràng' },
+  { value: 'CNPM', label: 'tối ưu theo chuyên ngành' },
+];
+
+const platformFeatures = [
+  {
+    kicker: 'Cá nhân hóa',
+    title: 'Học theo tiến độ của từng sinh viên',
+    description: 'Theo dõi tiến độ, điểm số và gợi ý học tiếp theo trong một màn hình.',
+  },
+  {
+    kicker: 'Quản lý học tập',
+    title: 'Bài học, quiz và chứng chỉ tập trung',
+    description: 'Giữ toàn bộ quy trình học trên một nền tảng gọn, dễ theo dõi và dễ dùng.',
+  },
+  {
+    kicker: 'Hỗ trợ AI',
+    title: 'Chatbot và cố vấn học tập 24/7',
+    description: 'Giải đáp nhanh theo ngữ cảnh môn học, giúp sinh viên học hiệu quả hơn.',
+  },
+];
 
 function LandingPage() {
   return (
     <div className="landing-page">
-      {/* Hero Section */}
-      <section className="hero">
-        <div className="hero-background"></div>
-        <div className="hero-content">
-          <div className="hero-badge">
-            <span>🎓</span>
-            <span>Đại học Văn Lang - CNTT</span>
-          </div>
-          
-          <h1 className="hero-title">
-            AI Learning Platform
-          </h1>
-          
-          <p className="hero-subtitle">
-            Hệ thống học tập thông minh với AI cá nhân hóa
-          </p>
-          
-          <p className="hero-description">
-            Trải nghiệm học tập được tối ưu hóa với công nghệ AI tiên tiến. 
-            Gợi ý nội dung phù hợp, chatbot hỗ trợ 24/7, và phân tích tiến độ thông minh.
-          </p>
-          
-          <div className="hero-buttons">
-            <Link to="/login" className="btn btn-primary">
-              <span>Đăng nhập</span>
-              <span>→</span>
-            </Link>
-            <Link to="/register" className="btn btn-secondary">
-              <span>Đăng ký ngay</span>
-            </Link>
-          </div>
-          
-          <div className="hero-stats">
-            <div className="stat">
-              <div className="stat-number">1000+</div>
-              <div className="stat-label">Sinh viên</div>
+      <header className="landing-nav">
+        <div className="container landing-nav-inner">
+          <a href="#top" className="landing-brand">
+            <div className="landing-brand-mark">
+              <img src="/iconvlu.webp" alt="Van Lang University logo" className="landing-brand-logo" />
             </div>
-            <div className="stat">
-              <div className="stat-number">50+</div>
-              <div className="stat-label">Khóa học</div>
+            <div>
+              <strong>AI Learning Platform</strong>
+              <span>Van Lang University</span>
             </div>
-            <div className="stat">
-              <div className="stat-number">95%</div>
-              <div className="stat-label">Hài lòng</div>
-            </div>
+          </a>
+
+          <nav className="landing-links">
+            <a href="#platform">Nền tảng</a>
+            <a href="#contact">Liên hệ</a>
+          </nav>
+
+          <div className="landing-actions">
+            <Link to="/login" className="btn btn-ghost">Đăng nhập</Link>
+            <Link to="/register" className="btn btn-solid">Tạo tài khoản sinh viên</Link>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Features Section */}
-      <section className="features">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Tính năng nổi bật</h2>
-            <p className="section-subtitle">
-              Công nghệ AI giúp tối ưu hóa trải nghiệm học tập của bạn
+      <main id="top">
+        <section className="hero-shell">
+          <div className="hero-noise" />
+          <div className="container hero-grid">
+            <div className="hero-copy">
+              <div className="hero-pill">Nền tảng học tập số cho sinh viên Văn Lang</div>
+              <h1>
+                Học tập đơn giản hơn,
+                <br />
+                hiệu quả hơn với <span>AI Learning Platform</span>.
+              </h1>
+
+
+              <div className="hero-cta-row">
+                <Link to="/login" className="btn btn-solid btn-large">Vào hệ thống ngay</Link>
+                <Link to="/register" className="btn btn-outline btn-large">Đăng ký sinh viên</Link>
+                <a
+                  href="https://www.vlu.edu.vn/about-us"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-text"
+                >
+                  Xem thông tin Văn Lang
+                </a>
+              </div>
+
+              <div className="hero-highlights">
+                {heroHighlights.map((item) => (
+                  <div key={item.label} className="hero-highlight-card">
+                    <strong>{item.value}</strong>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="hero-stage">
+              <div className="stage-orbit orbit-one" />
+              <div className="stage-orbit orbit-two" />
+              <div className="hero-main-panel">
+                <div className="panel-topline">
+                  <span className="panel-chip">VLU x AI</span>
+                  <span className="panel-chip muted">Personalized learning</span>
+                </div>
+
+                <div className="hero-panel-body">
+                  <div className="hero-panel-copy">
+                    <h2>Một nơi duy nhất cho toàn bộ hành trình học.</h2>
+                    <p>
+                      Theo dõi tiến độ, làm bài học, nhận tư vấn và hoàn thành lộ trình tốt nghiệp ngay trên một nền tảng.
+                    </p>
+                  </div>
+
+                  <div className="hero-panel-stack">
+                    <article className="floating-metric accent-red">
+                      <span className="metric-label">Roadmap</span>
+                      <strong>5 giai đoạn học tập</strong>
+                      <p>Lộ trình rõ ràng, dễ bám theo.</p>
+                    </article>
+
+                    <article className="floating-metric accent-sand">
+                      <span className="metric-label">Progress</span>
+                      <strong>Theo dõi kết quả theo thời gian thực</strong>
+                      <p>Cập nhật điểm và tiến độ tức thì.</p>
+                    </article>
+
+                    <article className="floating-metric accent-dark">
+                      <span className="metric-label">Support</span>
+                      <strong>AI hỗ trợ học tập liên tục</strong>
+                      <p>Hỏi nhanh, nhận hướng dẫn ngay.</p>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="platform" className="platform-section">
+          <div className="container">
+            <div className="section-heading centered">
+              <span className="section-kicker">Giá trị chính</span>
+              <h2>Những gì quan trọng nhất cho người học</h2>
+            </div>
+
+            <div className="feature-masonry">
+              {platformFeatures.map((feature) => (
+                <article key={feature.title} className="feature-tile">
+                  <span>{feature.kicker}</span>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="cta-section">
+          <div className="container">
+            <div className="cta-panel">
+              <div>
+                <span className="section-kicker light">Sẵn sàng bắt đầu</span>
+                <h2>Đăng nhập để bắt đầu học ngay hôm nay.</h2>
+              </div>
+
+              <div className="cta-actions">
+                <Link to="/register" className="btn btn-light">Đăng ký sinh viên</Link>
+                <Link to="/login" className="btn btn-dark">Đăng nhập</Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer id="contact" className="landing-footer">
+        <div className="container footer-grid">
+          <div>
+            <h3>AI Learning Platform</h3>
+            <p>
+              Nền tảng học tập thông minh cho sinh viên Văn Lang.
             </p>
           </div>
-          
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">🎯</div>
-              <h3 className="feature-title">Gợi ý Cá nhân hóa</h3>
-              <p className="feature-description">
-                AI phân tích hành vi học tập và đề xuất nội dung phù hợp với năng lực của bạn
-              </p>
-            </div>
-            
-            <div className="feature-card">
-              <div className="feature-icon">💬</div>
-              <h3 className="feature-title">Chatbot AI</h3>
-              <p className="feature-description">
-                Trợ lý ảo thông minh hỗ trợ 24/7, giải đáp thắc mắc và tóm tắt tài liệu
-              </p>
-            </div>
-            
-            <div className="feature-card">
-              <div className="feature-icon">📊</div>
-              <h3 className="feature-title">Phân tích Tiến độ</h3>
-              <p className="feature-description">
-                Theo dõi chi tiết quá trình học tập với dashboard trực quan và insights thông minh
-              </p>
-            </div>
-            
-            <div className="feature-card">
-              <div className="feature-icon">🚀</div>
-              <h3 className="feature-title">Học Thích ứng</h3>
-              <p className="feature-description">
-                Hệ thống tự động điều chỉnh độ khó và nội dung dựa trên tiến độ của bạn
-              </p>
-            </div>
+
+          <div>
+            <h4>Liên kết nhanh</h4>
+            <ul>
+              <li><a href="https://www.vlu.edu.vn/about-us" target="_blank" rel="noreferrer">Về Văn Lang</a></li>
+              <li><a href="https://tuyensinh.vlu.edu.vn/" target="_blank" rel="noreferrer">Tuyển sinh Văn Lang</a></li>
+              <li><a href="https://www.vlu.edu.vn/academics/faculty-group?faculty=truong-cong-nghe-van-lang#faculties" target="_blank" rel="noreferrer">Trường Công nghệ Văn Lang</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4>Liên hệ</h4>
+            <ul>
+              <li>Cơ sở chính: 69/68 Đặng Thùy Trâm, Phường Bình Lợi Trung, TP. Hồ Chí Minh</li>
+              <li>Tuyển sinh: 028.7105.9999</li>
+              <li>Email tuyển sinh: tuyensinh@vlu.edu.vn</li>
+            </ul>
           </div>
         </div>
-      </section>
 
-      {/* Technology Section */}
-      <section className="technology">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Công nghệ tiên tiến</h2>
-            <p className="section-subtitle">
-              Xây dựng trên nền tảng AI và Machine Learning hiện đại
-            </p>
-          </div>
-          
-          <div className="tech-grid">
-            <div className="tech-card">
-              <div className="tech-icon">🤖</div>
-              <h4>Machine Learning</h4>
-              <p>Collaborative Filtering, Matrix Factorization, XGBoost</p>
-            </div>
-            
-            <div className="tech-card">
-              <div className="tech-icon">🧠</div>
-              <h4>Deep Learning</h4>
-              <p>BERT, GPT - Mô hình ngôn ngữ lớn</p>
-            </div>
-            
-            <div className="tech-card">
-              <div className="tech-icon">📈</div>
-              <h4>Analytics</h4>
-              <p>Learning Analytics, Predictive Modeling</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="cta">
-        <div className="container">
-          <div className="cta-content">
-            <h2 className="cta-title">Sẵn sàng bắt đầu?</h2>
-            <p className="cta-description">
-              Tham gia ngay để trải nghiệm học tập với AI
-            </p>
-            <Link to="/register" className="btn btn-primary btn-large">
-              Đăng ký miễn phí
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-section">
-              <h3>AI Learning Platform</h3>
-              <p>Đồ án tốt nghiệp - Đại học Văn Lang</p>
-            </div>
-            
-            <div className="footer-section">
-              <h4>Thông tin</h4>
-              <p>Sinh viên: Phạm Thành Tâm</p>
-              <p>MSSV: 2174802010372</p>
-            </div>
-            
-            <div className="footer-section">
-              <h4>Liên hệ</h4>
-              <p>Khoa CNTT - Đại học Văn Lang</p>
-              <p>GV: ThS. Trần Kim Mỹ Vân</p>
-            </div>
-          </div>
-          
-          <div className="footer-bottom">
-            <p>© 2025 AI Learning Platform. All rights reserved.</p>
-          </div>
+        <div className="container footer-bottom">
+          <span>© 2026 AI Learning Platform</span>
         </div>
       </footer>
     </div>
-  )
+  );
 }
 
-export default LandingPage
+export default LandingPage;

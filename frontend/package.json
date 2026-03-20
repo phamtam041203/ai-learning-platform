@@ -13,6 +13,8 @@
     "@react-three/drei": "^9.121.4",
     "@react-three/fiber": "^8.17.10",
     "axios": "^1.6.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.303.0",
     "pdfjs-dist": "^5.4.530",
     "react": "^18.2.0",

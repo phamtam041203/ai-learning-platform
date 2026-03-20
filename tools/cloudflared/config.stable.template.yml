@@ -1,0 +1,7 @@
+tunnel: REPLACE_TUNNEL_ID
+credentials-file: REPLACE_CREDENTIALS_FILE
+
+ingress:
+  - hostname: REPLACE_HOSTNAME
+    service: http://localhost:80
+  - service: http_status:404

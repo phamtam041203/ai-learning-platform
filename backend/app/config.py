@@ -1,5 +1,8 @@
 # backend/app/config.py
+import json
+
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import List
 
 class Settings(BaseSettings):
@@ -8,9 +11,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # Database
-    DATABASE_URL: str = "postgresql://postgres:admin@localhost:5432/learning_db"
-    MONGODB_URL: str = "mongodb://localhost:27017"
-    REDIS_URL: str = "redis://localhost:6379"
+    DATABASE_URL: str = "postgresql://postgres:postgres@db:5432/ai_learning_db"
+    MONGODB_URL: str = "mongodb://mongo:27017"
+    REDIS_URL: str = "redis://redis:6379/0"
     
     # Security
     SECRET_KEY: str = "your-secret-key-here-change-in-production"
@@ -20,8 +23,32 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
         "http://localhost:5173",
     ]
+
+    @field_validator("ALLOWED_ORIGINS", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, value):
+        if value is None or value == "":
+            return [
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://localhost:3002",
+                "http://localhost:5173",
+            ]
+
+        if isinstance(value, str):
+            stripped_value = value.strip()
+
+            if stripped_value.startswith("["):
+                parsed_value = json.loads(stripped_value)
+                return [origin.strip() for origin in parsed_value if isinstance(origin, str) and origin.strip()]
+
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+        return value
     
     # AI Models
     BERT_MODEL_NAME: str = "vinai/phobert-base"  # Vietnamese BERT

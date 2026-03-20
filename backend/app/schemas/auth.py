@@ -12,7 +12,7 @@ class StudentRegister(BaseModel):
     full_name: str = Field(min_length=2)
     intake_year: int = Field(ge=20, le=99, description="Khóa học (VD: 25 cho K25)")
     major: str
-    specialization: str = Field(description="Chuyên ngành: Công nghệ phần mềm, Công nghệ dữ liệu, An ninh mạng")
+    specialization: str = Field(description="Chuyên ngành hiện được hỗ trợ: Công nghệ phần mềm (CNPM)")
     class_name: str
     phone: Optional[str] = None
     education_type: Optional[str] = "0"
@@ -54,7 +54,7 @@ class ChangePasswordRequest(BaseModel):
 
 class SetSpecializationRequest(BaseModel):
     """Set student specialization"""
-    specialization: str = Field(..., description="Chuyên ngành: CNPM, CNDL, hoặc ANM")
+    specialization: str = Field(..., description="Chuyên ngành hiện được hỗ trợ: CNPM")
     
     class Config:
         from_attributes = True

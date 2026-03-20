@@ -3,11 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { TrendingUp, CheckCircle, Clock } from 'lucide-react';
 import StudentSidebar from '../../components/StudentSidebar';
 import ProgressJourney3D from '../../components/student/ProgressJourney3D';
+import Loading from '../../components/common/Loading';
 import { studentAPI } from '../../services/api';
-import {
-  clearStoredPersonalization,
-  getStoredPersonalization,
-} from '../../utils/personalizationStorage';
 import './StudentDashboard.css';
 
 const ProgressPage = () => {
@@ -16,8 +13,6 @@ const ProgressPage = () => {
   const [roadmap, setRoadmap] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [intakeTemplate, setIntakeTemplate] = useState([]);
-  const [personalization, setPersonalization] = useState(() => getStoredPersonalization());
 
   useEffect(() => {
     const storedDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -57,14 +52,8 @@ const ProgressPage = () => {
     try {
       setLoading(true);
       setError(null);
-      setPersonalization(getStoredPersonalization());
-      const [roadmapResponse, intakeResponse] = await Promise.all([
-        studentAPI.getCurriculumStatus(),
-        studentAPI.getIntakeAssessmentTemplate().catch(() => ({ questions: [] }))
-      ]);
-
+      const roadmapResponse = await studentAPI.getCurriculumStatus();
       setRoadmap(roadmapResponse);
-      setIntakeTemplate(intakeResponse?.questions || []);
     } catch (err) {
       console.error('Error fetching progress:', err);
       setError('Không thể tải tiến độ. Vui lòng thử lại.');
@@ -74,12 +63,11 @@ const ProgressPage = () => {
   };
 
   const phases = roadmap?.phases || [];
+  const currentPhase = roadmap?.current_phase || roadmap?.active_phase || null;
   const totalMilestones = phases.reduce((sum, phase) => sum + (phase.required_total || 0) + (phase.elective_min_select || 0), 0);
   const completedMilestones = phases.reduce((sum, phase) => sum + (phase.required_completed || 0) + Math.min(phase.elective_completed || 0, phase.elective_min_select || 0), 0);
   const overallPercentage = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
   const completedStages = phases.filter((phase) => phase.is_completed).length;
-  const personalizationAnalysis = personalization?.analysis || personalization || null;
-  const intakeUnavailable = !loading && !personalizationAnalysis && intakeTemplate.length === 0;
 
   const getPhaseProgress = (phase) => {
     const total = (phase.required_total || 0) + (phase.elective_min_select || 0);
@@ -103,24 +91,51 @@ const ProgressPage = () => {
     navigate(`/student/courses/${course.courseId}/lessons`);
   };
 
-  const handleResetAssessment = () => {
-    clearStoredPersonalization();
-    setPersonalization(null);
-  };
+  if (loading) {
+    return (
+      <div className="student-page-shell">
+        <StudentSidebar darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
+
+        <div className="student-page-main">
+          <div className="student-page-header">
+            <div className="student-page-header-inner">
+              <div className="student-page-title-row">
+                <TrendingUp size={32} style={{ color: 'var(--primary)' }} />
+                <h1 style={{
+                  fontSize: '2rem',
+                  fontWeight: 'bold',
+                  color: 'var(--text-primary)',
+                  margin: 0
+                }}>
+                  Tiến Độ Học Tập
+                </h1>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                Theo dõi tiến độ hoàn thành khóa học của bạn
+              </p>
+            </div>
+          </div>
+
+          <div className="student-page-body">
+            <Loading
+              title="Dang tai tien do hoc tap"
+              subtitle="Dang cap nhat roadmap va cac cot moc hoan thanh."
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div className="student-page-shell">
       <StudentSidebar darkMode={darkMode} onToggleDarkMode={toggleDarkMode} />
 
-      <div style={{ flex: 1, marginLeft: '280px', width: 'calc(100% - 280px)' }}>
+      <div className="student-page-main">
         {/* Header */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '2rem',
-          borderBottom: '1px solid var(--border-color)'
-        }}>
-          <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        <div className="student-page-header">
+          <div className="student-page-header-inner">
+            <div className="student-page-title-row">
               <TrendingUp size={32} style={{ color: 'var(--primary)' }} />
               <h1 style={{
                 fontSize: '2rem',
@@ -138,160 +153,14 @@ const ProgressPage = () => {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-          <div style={{
-            marginBottom: '1.5rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '24px',
-            padding: '1.5rem',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{
-                display: 'inline-flex',
-                width: 'fit-content',
-                padding: '0.35rem 0.75rem',
-                borderRadius: '999px',
-                background: 'rgba(185, 28, 28, 0.08)',
-                color: '#991b1b',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase'
-              }}>
-                AI Personalization
-              </div>
-              <div>
-                <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>Bài test đầu vào để mở khóa bản đồ 3D</h2>
-                <p style={{ margin: '0.4rem 0 0', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  Hoàn thành bài test đầu vào để Gemini phân tích nền tảng hiện tại, đề xuất độ khó phù hợp và mở trước các khu vực nên ưu tiên trên hành trình học tập.
-                </p>
-              </div>
-            </div>
-
-            {personalizationAnalysis ? (
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                <div style={{
-                  padding: '1rem 1.1rem',
-                  borderRadius: '18px',
-                  background: 'linear-gradient(135deg, rgba(185, 28, 28, 0.08), rgba(245, 158, 11, 0.12))',
-                  border: '1px solid rgba(185, 28, 28, 0.14)'
-                }}>
-                  <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.7 }}>
-                    {personalizationAnalysis.ai_summary}
-                  </p>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  gap: '0.9rem'
-                }}>
-                  <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '1rem', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Điểm đầu vào</div>
-                    <strong style={{ fontSize: '1.8rem', color: 'var(--text-primary)' }}>{personalizationAnalysis.assessment_score}%</strong>
-                  </div>
-                  <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '1rem', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Phong cách học</div>
-                    <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)', textTransform: 'capitalize' }}>{personalizationAnalysis.learning_style}</strong>
-                  </div>
-                  <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '1rem', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Độ khó khởi đầu</div>
-                    <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)', textTransform: 'capitalize' }}>{personalizationAnalysis.recommended_difficulty}</strong>
-                  </div>
-                  <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '1rem', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Chặng được AI mở khóa</div>
-                    <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{(personalizationAnalysis.unlocked_phase_ids || []).join(', ')}</strong>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gap: '0.7rem' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>Hành động đề xuất</strong>
-                  <div style={{ display: 'grid', gap: '0.6rem' }}>
-                    {(personalizationAnalysis.next_actions || []).map((action, index) => (
-                      <div
-                        key={`action-${index}`}
-                        style={{
-                          padding: '0.85rem 1rem',
-                          borderRadius: '14px',
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)'
-                        }}
-                      >
-                        {action}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                  <button className="btn-outline" onClick={() => navigate('/student/skill-assessment')}>
-                    Xem bài test năng lực
-                  </button>
-                  <button className="btn-outline" onClick={handleResetAssessment}>
-                    Làm lại bài test đầu vào
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                {intakeUnavailable ? (
-                  <div style={{
-                    padding: '1rem 1.1rem',
-                    borderRadius: '18px',
-                    background: 'rgba(245, 158, 11, 0.12)',
-                    border: '1px solid rgba(245, 158, 11, 0.24)',
-                    color: 'var(--text-primary)',
-                    lineHeight: 1.6
-                  }}>
-                    Hiện chưa tải được bộ câu hỏi bài test đầu vào từ backend. Nếu bạn vừa cập nhật code, hãy khởi động lại backend rồi mở lại trang này.
-                  </div>
-                ) : null}
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  gap: '0.9rem'
-                }}>
-                  <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '1rem', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Số câu hỏi đánh giá</div>
-                    <strong style={{ fontSize: '1.8rem', color: 'var(--text-primary)' }}>{intakeTemplate.length || '--'}</strong>
-                  </div>
-                  <div style={{ background: 'var(--bg-primary)', borderRadius: '16px', padding: '1rem', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Đầu ra</div>
-                    <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>Roadmap 3D + Adaptive Learning</strong>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                  <button className="btn-outline" onClick={() => navigate('/student/skill-assessment')}>
-                    Xem trang test năng lực
-                  </button>
-                  <button
-                    className="btn-primary"
-                    disabled={intakeUnavailable}
-                    onClick={() => navigate('/student/skill-assessment')}
-                  >
-                    Bắt đầu bài test đầu vào
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
+        <div className="student-page-body">
           <ProgressJourney3D
             roadmap={roadmap}
             onCourseSelect={handleOpenCourseFromMap}
-            personalization={personalizationAnalysis}
+            personalization={null}
           />
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem' }}>
-              <p style={{ color: 'var(--text-secondary)' }}>Đang tải tiến độ...</p>
-            </div>
-          ) : error ? (
+          {error ? (
             <div style={{ textAlign: 'center', padding: '3rem' }}>
               <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
             </div>
@@ -330,7 +199,7 @@ const ProgressPage = () => {
                   border: '1px solid var(--border-color)'
                 }}>
                   <p style={{ margin: '0 0 0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Giai đoạn hiện tại</p>
-                  <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>{roadmap?.active_phase?.name || 'Đang cập nhật'}</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>{currentPhase?.name || 'Đang cập nhật'}</h3>
                 </div>
               </div>
 

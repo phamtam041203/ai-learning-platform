@@ -1,27 +1,14 @@
 import { useState } from 'react';
+import { buildApiUrl } from '../config/api';
 import './SpecializationModal.css';
 
 const SPECIALIZATIONS = [
   {
     id: 'CNPM',
-    name: 'Chuyên ngành Phát triển phần mềm',
-    description: 'Tập trung vào phát triển ứng dụng web, mobile, và hệ thống phần mềm',
+    name: 'Chuyên ngành Công nghệ phần mềm',
+    description: 'Hệ thống hiện đang tập trung cho sinh viên CNPM, bao gồm lộ trình học, tài liệu và bài đánh giá chuyên sâu cho phát triển phần mềm.',
     icon: '💻',
-    courses: ['Web Development', 'Backend Development', 'Database Design']
-  },
-  {
-    id: 'CNDL',
-    name: 'Chuyên ngành Dữ liệu lớn',
-    description: 'Xử lý, phân tích, và khai thác dữ liệu lớn với các công nghệ hiện đại',
-    icon: '📊',
-    courses: ['Big Data Fundamentals', 'Apache Spark', 'Data Analytics']
-  },
-  {
-    id: 'ANM',
-    name: 'Chuyên ngành An toàn mạng',
-    description: 'Bảo vệ hệ thống, mạng, và dữ liệu từ các mối đe dọa an ninh mạng',
-    icon: '🔒',
-    courses: ['Cybersecurity', 'Cryptography', 'Network Security']
+    courses: ['Lập trình web', 'Phát triển backend', 'Thiết kế cơ sở dữ liệu']
   }
 ];
 
@@ -46,7 +33,7 @@ const SpecializationModal = ({ isOpen, onSelect }) => {
       }
 
       // Gọi API lưu specialization
-      const response = await fetch('http://localhost:8000/api/student/set-specialization', {
+      const response = await fetch(buildApiUrl('/student/set-specialization'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,8 +70,8 @@ const SpecializationModal = ({ isOpen, onSelect }) => {
     <div className="specialization-modal-overlay">
       <div className="specialization-modal">
         <div className="modal-header">
-          <h2>🎓 Chọn Chuyên Ngành Học Tập</h2>
-          <p className="modal-subtitle">Lựa chọn này sẽ quyết định các khóa học, tài liệu, và bài kiểm tra của bạn</p>
+          <h2>🎓 Xác Nhận Chuyên Ngành Học Tập</h2>
+          <p className="modal-subtitle">Giai đoạn hiện tại hệ thống chỉ mở cho chuyên ngành CNPM, nên hồ sơ sinh viên sẽ được chuẩn hóa về Công nghệ phần mềm</p>
         </div>
 
         {error && (
@@ -127,7 +114,7 @@ const SpecializationModal = ({ isOpen, onSelect }) => {
         </div>
 
         <div className="modal-footer">
-          <p className="info-text">⚠️ Bạn có thể thay đổi chuyên ngành sau trong phần Cài đặt hồ sơ</p>
+          <p className="info-text">⚠️ Khi mở rộng sang các chuyên ngành khác, phần lựa chọn này sẽ được cập nhật lại</p>
         </div>
       </div>
     </div>

@@ -117,6 +117,21 @@
   border: 1px solid #e5e7eb;
 }
 
+.form-card-header {
+  margin-bottom: 14px;
+}
+
+.form-card-header h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.form-card-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
 .form-grid {
   display: grid;
   gap: 12px;
@@ -129,6 +144,38 @@
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-info-banner {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+}
+
+.admin-inline-message {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.admin-inline-message.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-inline-message.error {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .checkbox-row {
@@ -180,6 +227,14 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
+}
+
+.admin-dashboard-loading-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
 }
 
 .modal-overlay {

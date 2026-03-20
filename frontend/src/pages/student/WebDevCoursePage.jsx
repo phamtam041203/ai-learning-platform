@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, Clock, User, Star, Download, Play, CheckCircle, Lock, ArrowLeft } from 'lucide-react';
 import StudentSidebar from '../../components/StudentSidebar';
 import PDFViewer from '../../components/PDFViewer';
+import { buildApiUrl } from '../../config/api';
 import './WebDevCoursePage.css';
 
 const WebDevCoursePage = () => {
@@ -23,7 +24,7 @@ const WebDevCoursePage = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:8000/api/courses/1', {
+        const response = await fetch(buildApiUrl('/courses/1'), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -68,7 +69,7 @@ const WebDevCoursePage = () => {
       // Use the actual PDF file name from database
       const fileName = lesson.pdf_file_name;
       // Add timestamp to prevent browser cache issues
-      const fileUrl = `http://localhost:8000/api/lessons/${encodeURIComponent(fileName)}?t=${Date.now()}`;
+      const fileUrl = buildApiUrl(`/lessons/${encodeURIComponent(fileName)}?t=${Date.now()}`);
       setCurrentPDFFile({
         url: fileUrl,
         name: fileName

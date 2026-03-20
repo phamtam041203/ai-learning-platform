@@ -5,7 +5,7 @@ Analyzes student performance and provides personalized recommendations
 from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from app.models.course import Enrollment, Course
+from app.models.course import Enrollment, Course, Lesson
 from app.models.assessment import QuizResult
 from app.models.user import User, StudentProfile
 
@@ -45,6 +45,12 @@ class StudentAdvisor:
         recommendations = self._generate_recommendations(
             strengths, weaknesses, enrollments, profile
         )
+        dashboard_summary = self._build_dashboard_summary(
+            performance_analysis,
+            strengths,
+            weaknesses,
+            recommendations
+        )
         
         return {
             "student_info": {
@@ -58,6 +64,7 @@ class StudentAdvisor:
             "strengths": strengths,
             "weaknesses": weaknesses,
             "recommendations": recommendations,
+            "dashboard_summary": dashboard_summary,
             "overall_score": self._calculate_overall_score(quiz_results, enrollments)
         }
     
@@ -92,6 +99,7 @@ class StudentAdvisor:
             "total_courses": total_courses,
             "completed_courses": completed_courses,
             "in_progress_courses": in_progress_courses,
+            "studied_courses": total_courses,
             "completion_rate": round(
                 (completed_courses / total_courses * 100) if total_courses > 0 else 0, 
                 2
@@ -164,11 +172,13 @@ class StudentAdvisor:
             q for q in quiz_results if q.score < 50
         ]
         if len(low_score_quizzes) >= 2:
+            low_score_quizzes = sorted(low_score_quizzes, key=lambda item: (item.score, item.completed_at or datetime.min))
             weaknesses.append({
                 "category": "Điểm quiz thấp",
                 "description": f"Bạn có {len(low_score_quizzes)} bài quiz dưới 50%",
                 "severity": "high",
-                "action": "Cần ôn tập lại các bài học cơ bản"
+                "action": "Cần ôn tập lại các bài học cơ bản",
+                "items": [self._serialize_quiz_result_detail(result) for result in low_score_quizzes[:5]]
             })
         
         # Incomplete courses
@@ -181,7 +191,8 @@ class StudentAdvisor:
                 "category": "Khóa học chưa hoàn thành",
                 "description": f"Bạn có {len(stalled_courses)} khóa học bị dừng lại",
                 "severity": "medium",
-                "action": "Hãy tập trung hoàn thành từng khóa học một"
+                "action": "Hãy tập trung hoàn thành từng khóa học một",
+                "items": [self._serialize_enrollment_detail(enrollment) for enrollment in stalled_courses[:5]]
             })
         
         # Inconsistent study pattern - fixed to use completed_at
@@ -324,6 +335,70 @@ class StudentAdvisor:
             "consistency_component": round(consistency_score, 2),
             "grade": grade,
             "color": color
+        }
+
+    def _serialize_quiz_result_detail(self, quiz_result: QuizResult) -> Dict:
+        lesson = self.db.query(Lesson).filter(Lesson.id == quiz_result.lesson_id).first()
+        course = self.db.query(Course).filter(Course.id == lesson.course_id).first() if lesson else None
+
+        return {
+            "quiz_result_id": quiz_result.id,
+            "lesson_id": quiz_result.lesson_id,
+            "lesson_title": lesson.title if lesson else "Bài học không xác định",
+            "course_id": course.id if course else None,
+            "course_name": course.course_name if course else "Khóa học không xác định",
+            "score": round(quiz_result.score or 0, 2),
+            "correct_answers": quiz_result.correct_answers,
+            "total_questions": quiz_result.total_questions,
+            "completed_at": quiz_result.completed_at.isoformat() if quiz_result.completed_at else None
+        }
+
+    def _serialize_enrollment_detail(self, enrollment: Enrollment) -> Dict:
+        course = self.db.query(Course).filter(Course.id == enrollment.course_id).first()
+        return {
+            "course_id": enrollment.course_id,
+            "course_name": course.course_name if course else "Khóa học không xác định",
+            "progress": round(enrollment.progress or 0, 2),
+            "completed_lessons": enrollment.completed_lessons or 0,
+            "status": enrollment.status.value if enrollment.status else None
+        }
+
+    def _build_dashboard_summary(
+        self,
+        performance: Dict,
+        strengths: List[Dict],
+        weaknesses: List[Dict],
+        recommendations: List[Dict]
+    ) -> Dict:
+        total_courses = performance.get("total_courses", 0)
+        completed_courses = performance.get("completed_courses", 0)
+        average_quiz_score = performance.get("average_quiz_score", 0)
+        passed_quizzes = performance.get("passed_quizzes", 0)
+        total_quizzes = performance.get("total_quizzes", 0)
+
+        if total_courses == 0:
+            headline = "Bạn chưa có dữ liệu học tập để AI phân tích sâu."
+            summary = "Hãy bắt đầu ít nhất một khóa học và hoàn thành vài quiz để hệ thống chỉ ra điểm mạnh, điểm yếu cụ thể."
+        else:
+            headline = f"Bạn đã học {total_courses} môn, hoàn thành {completed_courses} môn và đạt trung bình {average_quiz_score:.1f}% ở các bài quiz."
+            if weaknesses:
+                summary = f"AI thấy bạn đang cần ưu tiên cải thiện: {weaknesses[0]['category'].lower()}."
+            elif strengths:
+                summary = f"AI đánh giá nổi bật nhất của bạn hiện tại là: {strengths[0]['category'].lower()}."
+            else:
+                summary = "Dữ liệu hiện tại ở mức trung tính, chưa có điểm mạnh hoặc điểm yếu quá rõ rệt."
+
+        next_step = recommendations[0]["title"] if recommendations else "Tiếp tục duy trì nhịp học hiện tại"
+
+        return {
+            "headline": headline,
+            "summary": summary,
+            "next_step": next_step,
+            "total_courses": total_courses,
+            "completed_courses": completed_courses,
+            "average_quiz_score": average_quiz_score,
+            "passed_quizzes": passed_quizzes,
+            "total_quizzes": total_quizzes
         }
 
     def _build_student_snapshot(self, analysis: Dict) -> Dict:

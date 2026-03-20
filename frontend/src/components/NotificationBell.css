@@ -184,3 +184,14 @@
   background: #d1d5db;
   border-radius: 4px;
 }
+
+@media (max-width: 768px) {
+  .nb-panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 72px;
+    width: auto;
+    max-width: calc(100vw - 24px);
+  }
+}

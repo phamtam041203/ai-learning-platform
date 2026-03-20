@@ -6,16 +6,15 @@ import './LessonAssistant.css';
 
 const GOOGLE_TTS_VOICE_PRESETS = {
   female: {
-    label: 'Google AI Sulafat',
-    description: 'Giọng nữ AI Google, ấm và tự nhiên'
+    label: 'VLU AI Sulafat',
+    description: 'Giọng nữ AI VLU, ấm và tự nhiên'
   },
   male: {
-    label: 'Google AI Orus',
-    description: 'Giọng nam AI Google, rõ và tự nhiên'
+    label: 'VLU AI Orus',
+    description: 'Giọng nam AI VLU, rõ và tự nhiên'
   }
 };
 const DEFAULT_VOICE_VOLUME = 0.85;
-const MAX_SPOKEN_TEXT_LENGTH = 420;
 const VLU_TUTOR_NAME = 'VLU Mentor';
 
 const getSpeechRecognitionConstructor = () => {
@@ -110,7 +109,7 @@ const buildWelcomeMessage = (title, mode) => ({
   id: `welcome-${mode}-${title}`,
   role: 'assistant',
   content: mode === 'lesson'
-    ? `Tôi đang bám theo bài "${title}". Hỏi trực tiếp phần bạn cần giải thích, tóm tắt hoặc ví dụ.`
+    ? `Tôi đang bám theo bài "${title}". Bạn có thể hỏi phần trong bài, hoặc hỏi thêm kiến thức nền liên quan khi tài liệu chưa nói rõ.`
     : 'Đặt câu hỏi trực tiếp. Tôi sẽ trả lời ngắn gọn và tập trung vào việc học của bạn.',
   source: 'system'
 });
@@ -170,7 +169,16 @@ const normalizeAssistantContent = (response) => {
     ?? response?.analysis_summary;
 
   const normalized = stringifyAssistantValue(primaryContent);
-  return normalized || 'Tôi chưa thể trả lời lúc này.';
+  const plainText = normalized
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/(?<!\*)\*(?!\s)(.*?)(?<!\s)\*(?!\*)/g, '$1')
+    .replace(/(?<!_)_(?!\s)(.*?)(?<!\s)_(?!_)/g, '$1')
+    .replace(/^[ \t]*#{1,6}[ \t]*/gm, '')
+    .replace(/`{1,3}/g, '')
+    .trim();
+
+  return plainText || 'Tôi chưa thể trả lời lúc này.';
 };
 
 const normalizeSpeechErrorMessage = (message = '') => {
@@ -187,38 +195,92 @@ const isQuotaSpeechError = (message = '') => {
   return normalized.includes('quota') || normalized.includes('resource_exhausted') || normalized.includes('429');
 };
 
+const isAutoplayBlockedError = (error) => {
+  const normalizedMessage = String(error?.message || '').toLowerCase();
+  return error?.name === 'NotAllowedError'
+    || normalizedMessage.includes('notallowederror')
+    || normalizedMessage.includes('play() failed')
+    || normalizedMessage.includes('user gesture');
+};
+
+const base64ToObjectUrl = (base64, mimeType) => {
+  const binary = window.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  const blob = new Blob([bytes], { type: mimeType });
+  return URL.createObjectURL(blob);
+};
+
+const splitSpeechTextIntoSegments = (text, maxSegmentLength = 220) => {
+  const normalized = String(text || '').trim();
+  if (!normalized) {
+    return [];
+  }
+
+  if (normalized.length <= maxSegmentLength) {
+    return [normalized];
+  }
+
+  const sentenceParts = normalized.split(/(?<=[.!?;:])\s+/).filter(Boolean);
+  if (sentenceParts.length === 0) {
+    return [normalized];
+  }
+
+  const segments = [];
+  let current = '';
+
+  for (const sentence of sentenceParts) {
+    if (!current) {
+      current = sentence;
+      continue;
+    }
+
+    const candidate = `${current} ${sentence}`;
+    if (candidate.length <= maxSegmentLength) {
+      current = candidate;
+      continue;
+    }
+
+    segments.push(current);
+
+    if (sentence.length <= maxSegmentLength) {
+      current = sentence;
+      continue;
+    }
+
+    const words = sentence.split(/\s+/).filter(Boolean);
+    let longChunk = '';
+    for (const word of words) {
+      const longCandidate = longChunk ? `${longChunk} ${word}` : word;
+      if (longCandidate.length <= maxSegmentLength) {
+        longChunk = longCandidate;
+      } else {
+        if (longChunk) {
+          segments.push(longChunk);
+        }
+        longChunk = word;
+      }
+    }
+
+    current = longChunk;
+  }
+
+  if (current) {
+    segments.push(current);
+  }
+
+  return segments.filter(Boolean);
+};
+
 const buildSpeechText = (content) => {
-  const plainText = stringifyAssistantValue(content)
+  return stringifyAssistantValue(content)
     .replace(/[*_#`>-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-
-  if (!plainText) {
-    return '';
-  }
-
-  const sentenceParts = plainText.split(/(?<=[.!?])\s+/).filter(Boolean);
-  const shortened = [];
-  let totalLength = 0;
-
-  for (const sentence of sentenceParts) {
-    const nextLength = totalLength + sentence.length;
-    if (nextLength > MAX_SPOKEN_TEXT_LENGTH && shortened.length > 0) {
-      break;
-    }
-
-    shortened.push(sentence);
-    totalLength = nextLength;
-
-    if (totalLength >= MAX_SPOKEN_TEXT_LENGTH) {
-      break;
-    }
-  }
-
-  const result = (shortened.join(' ') || plainText).trim();
-  return result.length > MAX_SPOKEN_TEXT_LENGTH
-    ? `${result.slice(0, MAX_SPOKEN_TEXT_LENGTH).trim()}...`
-    : result;
 };
 
 const TutorSceneFallback = ({ compact = false, message = 'NPC đang sẵn sàng hỗ trợ' }) => (
@@ -274,12 +336,19 @@ const LessonAssistant = ({
   const [voiceVolume, setVoiceVolume] = useState(DEFAULT_VOICE_VOLUME);
   const [speechSupport, setSpeechSupport] = useState({ recognition: false, mediaDevices: false, isBrave: false });
   const [error, setError] = useState(null);
+  const [hasPendingVoicePlayback, setHasPendingVoicePlayback] = useState(false);
   const endRef = useRef(null);
   const recognitionRef = useRef(null);
   const audioRef = useRef(null);
+  const audioUrlRef = useRef(null);
   const lastAudioSignatureRef = useRef(null);
+  const voiceVolumeRef = useRef(DEFAULT_VOICE_VOLUME);
+  const ttsSessionRef = useRef(0);
+  const ttsGeneratedAudioUrlsRef = useRef([]);
 
   const stopCurrentAudio = () => {
+    ttsSessionRef.current += 1;
+
     const activeAudio = audioRef.current;
     if (activeAudio) {
       activeAudio.pause();
@@ -288,6 +357,19 @@ const LessonAssistant = ({
       activeAudio.onerror = null;
       audioRef.current = null;
     }
+
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+
+    if (ttsGeneratedAudioUrlsRef.current.length > 0) {
+      const uniqueUrls = new Set(ttsGeneratedAudioUrlsRef.current);
+      uniqueUrls.forEach((url) => URL.revokeObjectURL(url));
+      ttsGeneratedAudioUrlsRef.current = [];
+    }
+
+    setHasPendingVoicePlayback(false);
     setIsSpeaking(false);
   };
 
@@ -331,6 +413,8 @@ const LessonAssistant = ({
   }, []);
 
   useEffect(() => {
+    voiceVolumeRef.current = voiceVolume;
+
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('lesson-assistant-voice-volume', String(voiceVolume));
     }
@@ -365,45 +449,102 @@ const LessonAssistant = ({
     }
 
     let isDisposed = false;
+    const sessionId = ttsSessionRef.current + 1;
+    ttsSessionRef.current = sessionId;
 
     const speakWithGoogleTts = async () => {
       try {
         setError(null);
         stopCurrentAudio();
+        ttsSessionRef.current = sessionId;
         setIsSpeaking(true);
 
-        const speechResponse = await chatbotAPI.generateTutorSpeech(spokenText, voiceGender);
-        if (isDisposed) {
+        const speechSegments = splitSpeechTextIntoSegments(spokenText);
+        if (speechSegments.length === 0) {
+          setIsSpeaking(false);
           return;
         }
 
-        const audioBase64 = speechResponse?.audio_base64;
-        const mimeType = speechResponse?.mime_type || 'audio/wav';
-        if (!audioBase64) {
-          throw new Error('Google AI không trả về dữ liệu giọng nói.');
+        const segmentAudioPromises = new Map();
+
+        const ensureSegmentAudio = (segmentIndex) => {
+          if (segmentAudioPromises.has(segmentIndex)) {
+            return segmentAudioPromises.get(segmentIndex);
+          }
+
+          const promise = (async () => {
+            const segmentText = speechSegments[segmentIndex];
+            const speechResponse = await chatbotAPI.generateTutorSpeech(segmentText, voiceGender);
+            const audioBase64 = speechResponse?.audio_base64;
+            const mimeType = speechResponse?.mime_type || 'audio/wav';
+
+            if (!audioBase64) {
+              throw new Error('Google AI không trả về dữ liệu giọng nói.');
+            }
+
+            const audioUrl = base64ToObjectUrl(audioBase64, mimeType);
+            ttsGeneratedAudioUrlsRef.current.push(audioUrl);
+            const audio = new Audio(audioUrl);
+            audio.preload = 'auto';
+            audio.volume = voiceVolumeRef.current;
+
+            return {
+              audio,
+              audioUrl,
+            };
+          })();
+
+          segmentAudioPromises.set(segmentIndex, promise);
+          return promise;
+        };
+
+        ensureSegmentAudio(0);
+        if (speechSegments.length > 1) {
+          ensureSegmentAudio(1);
         }
 
-        const audio = new Audio(`data:${mimeType};base64,${audioBase64}`);
-        audio.volume = voiceVolume;
-        audioRef.current = audio;
+        for (let segmentIndex = 0; segmentIndex < speechSegments.length; segmentIndex += 1) {
+          if (isDisposed || ttsSessionRef.current !== sessionId) {
+            return;
+          }
+
+          const { audio, audioUrl } = await ensureSegmentAudio(segmentIndex);
+          if (isDisposed || ttsSessionRef.current !== sessionId) {
+            return;
+          }
+
+          audioRef.current = audio;
+          audioUrlRef.current = audioUrl;
+          setHasPendingVoicePlayback(false);
+
+          if (segmentIndex + 1 < speechSegments.length) {
+            ensureSegmentAudio(segmentIndex + 1);
+          }
+
+          await new Promise((resolve, reject) => {
+            audio.onended = () => resolve();
+            audio.onerror = () => reject(new Error('Không thể phát giọng đọc Google AI lúc này.'));
+            audio.play().catch(reject);
+          });
+
+          audio.onended = null;
+          audio.onerror = null;
+        }
+
         lastAudioSignatureRef.current = nextSignature;
-
-        audio.onended = () => {
-          if (!isDisposed) {
-            setIsSpeaking(false);
-          }
-        };
-
-        audio.onerror = () => {
-          if (!isDisposed) {
-            setIsSpeaking(false);
-            setError('Không thể phát giọng đọc Google AI lúc này.');
-          }
-        };
-
-        await audio.play();
+        if (!isDisposed && ttsSessionRef.current === sessionId) {
+          setHasPendingVoicePlayback(false);
+          setIsSpeaking(false);
+        }
       } catch (speechError) {
         if (!isDisposed) {
+          if (isAutoplayBlockedError(speechError) && audioRef.current) {
+            setHasPendingVoicePlayback(true);
+            setIsSpeaking(false);
+            setError('Trình duyệt điện thoại đang chặn tự phát âm thanh. Hãy bấm "Chạm để phát giọng đọc" để nghe câu trả lời.');
+            return;
+          }
+
           lastAudioSignatureRef.current = null;
           setIsSpeaking(false);
           const normalizedSpeechError = normalizeSpeechErrorMessage(speechError.message);
@@ -424,7 +565,7 @@ const LessonAssistant = ({
       isDisposed = true;
       stopCurrentAudio();
     };
-  }, [messages, responseMode, voiceGender, voiceVolume]);
+  }, [messages, responseMode, voiceGender]);
 
   useEffect(() => {
     if (responseMode !== 'voice') {
@@ -592,6 +733,24 @@ const LessonAssistant = ({
     setError(null);
   };
 
+  const handlePlayPendingAudio = async () => {
+    if (!audioRef.current) {
+      setHasPendingVoicePlayback(false);
+      setError('Không còn bản ghi âm đang chờ phát. Hãy gửi lại câu hỏi để tạo giọng đọc mới.');
+      return;
+    }
+
+    try {
+      setError(null);
+      setIsSpeaking(true);
+      await audioRef.current.play();
+      setHasPendingVoicePlayback(false);
+    } catch (playError) {
+      setIsSpeaking(false);
+      setError(`Vẫn chưa phát được giọng đọc trên thiết bị này. Chi tiết: ${normalizeSpeechErrorMessage(playError?.message)}`);
+    }
+  };
+
   const handleChangeVoiceGender = (nextGender) => {
     setVoiceGender(nextGender);
     lastAudioSignatureRef.current = null;
@@ -628,7 +787,7 @@ const LessonAssistant = ({
         </div>
         <div className="lesson-assistant-launcher-copy">
           <strong>{VLU_TUTOR_NAME}</strong>
-          <span>{mode === 'lesson' ? 'Mở để hỏi theo bài học' : 'Mở để hỏi nhanh'}</span>
+          <span>{mode === 'lesson' ? 'Mở để hỏi theo bài và mở rộng' : 'Mở để hỏi nhanh'}</span>
         </div>
       </button>
 
@@ -644,7 +803,7 @@ const LessonAssistant = ({
                 <h2>{VLU_TUTOR_NAME}</h2>
                 <p>
                   {mode === 'lesson'
-                    ? 'Hỏi trực tiếp nội dung của bài học hiện tại.'
+                    ? 'Hỏi nội dung bài học hiện tại hoặc kiến thức nền liên quan nếu bài chưa nói rõ.'
                     : 'Hỏi trực tiếp về kế hoạch học, ưu tiên môn và cách cải thiện tiến độ.'}
                 </p>
               </div>
@@ -668,40 +827,7 @@ const LessonAssistant = ({
                 {lessonDescription ? <span>{lessonDescription}</span> : null}
               </div>
 
-              <div className="lesson-assistant-status-row">
-                <span className={`lesson-assistant-status-pill ${npcMode}`}>
-                  {isSending ? 'Đang phân tích và cố vấn' : isListening ? 'Đang lắng nghe' : isSpeaking ? 'Đang trả lời bằng giọng nói' : 'Sẵn sàng đồng hành'}
-                </span>
-                <span className="lesson-assistant-status-pill muted">
-                  {speechSupport.isBrave ? 'Mic bị giới hạn trên Brave' : speechSupport.recognition && speechSupport.mediaDevices ? 'Mic sẵn sàng' : 'Mic chưa khả dụng'}
-                </span>
-                <span className="lesson-assistant-status-pill brand">
-                  {mode === 'lesson' ? 'Theo bài học' : 'Tư vấn nhanh'}
-                </span>
-              </div>
-
               <div className="lesson-assistant-settings">
-                <div className="lesson-assistant-setting-block">
-                  <span className="lesson-assistant-setting-label">Kiểu trả lời</span>
-                  <div className="lesson-assistant-choice-group">
-                    <button
-                      type="button"
-                      className={`lesson-assistant-choice-button ${responseMode === 'text' ? 'active' : ''}`}
-                      onClick={() => handleChangeResponseMode('text')}
-                    >
-                      Trả lời bằng chữ
-                    </button>
-                    <button
-                      type="button"
-                      className={`lesson-assistant-choice-button ${responseMode === 'voice' ? 'active' : ''}`}
-                      onClick={() => handleChangeResponseMode('voice')}
-                    >
-                      <Volume2 size={14} />
-                      Chữ kèm giọng nói
-                    </button>
-                  </div>
-                </div>
-
                 <div className="lesson-assistant-setting-block">
                   <span className="lesson-assistant-setting-label">Giọng đọc</span>
                   <div className="lesson-assistant-choice-group">
@@ -775,7 +901,7 @@ const LessonAssistant = ({
                 </div>
                 <div className="lesson-assistant-bubble">
                   <div className="lesson-assistant-role">
-                    {message.role === 'assistant' ? (mode === 'lesson' ? `${VLU_TUTOR_NAME} Theo Bài Học` : VLU_TUTOR_NAME) : 'Bạn'}
+                    {message.role === 'assistant' ? (mode === 'lesson' ? `${VLU_TUTOR_NAME} Theo Bài + Mở Rộng` : VLU_TUTOR_NAME) : 'Bạn'}
                   </div>
                   <div className="lesson-assistant-text">{message.content}</div>
                 </div>
@@ -789,7 +915,7 @@ const LessonAssistant = ({
                 </div>
                 <div className="lesson-assistant-bubble lesson-assistant-bubble-loading">
                   <Loader2 size={18} className="lesson-assistant-spinner" />
-                  <span>{mode === 'lesson' ? `${VLU_TUTOR_NAME} đang chuẩn bị câu trả lời theo bài học...` : `${VLU_TUTOR_NAME} đang chuẩn bị câu trả lời...`}</span>
+                  <span>{mode === 'lesson' ? `${VLU_TUTOR_NAME} đang chuẩn bị câu trả lời theo bài học và kiến thức liên quan...` : `${VLU_TUTOR_NAME} đang chuẩn bị câu trả lời...`}</span>
                 </div>
               </article>
             ) : null}
@@ -801,9 +927,9 @@ const LessonAssistant = ({
             <textarea
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
-              rows={3}
+              rows={2}
               placeholder={mode === 'lesson'
-                ? 'Hỏi nội dung bạn đang vướng trong bài này...'
+                ? 'Hỏi nội dung trong bài hoặc kiến thức nền liên quan bạn đang vướng...'
                 : 'Hỏi môn nên ưu tiên, kế hoạch học hoặc vấn đề bạn đang mắc...'}
             />
             <div className="lesson-assistant-form-footer">
@@ -817,15 +943,6 @@ const LessonAssistant = ({
                   {isListening ? <MicOff size={16} /> : <Mic size={16} />}
                   {speechSupport.isBrave ? 'Brave chưa hỗ trợ ổn định' : isListening ? 'Dừng nghe' : 'Hỏi bằng mic'}
                 </button>
-
-                <button
-                  type="button"
-                  className={`lesson-assistant-control-button ${responseMode === 'voice' ? 'active' : ''}`}
-                  onClick={() => handleChangeResponseMode(responseMode === 'voice' ? 'text' : 'voice')}
-                >
-                  <Volume2 size={16} />
-                  {responseMode === 'voice' ? 'Đang bật giọng nói' : 'Đang chỉ trả lời bằng chữ'}
-                </button>
               </div>
 
               <button type="submit" className="lesson-assistant-submit" disabled={isSending || !question.trim()}>
@@ -836,15 +953,15 @@ const LessonAssistant = ({
           </form>
 
           <div className="lesson-assistant-hint-row">
-            <span className="lesson-assistant-hint">
-              {mode === 'lesson'
-                ? `${VLU_TUTOR_NAME} ưu tiên trả lời theo bài học hiện tại.`
-                : `${VLU_TUTOR_NAME} ưu tiên trả lời ngắn gọn theo câu hỏi của bạn.`}
-            </span>
-            {speechSupport.isBrave ? (
-              <span className="lesson-assistant-hint">
-                Brave thường chặn hoặc làm hỏng Web Speech API, nên chế độ hỏi bằng mic của AI Tutor hiện chỉ được hỗ trợ ổn định trên Edge và Chrome.
-              </span>
+            {hasPendingVoicePlayback ? (
+              <button
+                type="button"
+                className="lesson-assistant-control-button active"
+                onClick={handlePlayPendingAudio}
+              >
+                <Volume2 size={16} />
+                Chạm để phát giọng đọc
+              </button>
             ) : null}
             {!speechSupport.recognition || !speechSupport.mediaDevices ? (
               <span className="lesson-assistant-hint">

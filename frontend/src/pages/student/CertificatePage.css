@@ -1,0 +1,335 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:wght@700;800&display=swap&subset=vietnamese');
+
+.certificate-loading,
+.certificate-error {
+  text-align: center;
+  padding: 3rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.certificate-error {
+  color: var(--error);
+}
+
+.certificate-locked-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.certificate-locked-card h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+}
+
+.certificate-locked-card p {
+  margin: 0.8rem 0 0;
+  color: var(--text-secondary);
+}
+
+.certificate-go-progress {
+  margin-top: 1rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.certificate-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.certificate-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  padding: 0.62rem 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.certificate-download-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.certificate-download-error {
+  color: #b91c1c;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.certificate-download-btn .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.certificate-award-shell {
+  position: relative;
+  border-radius: 30px;
+  padding: 18px;
+  background: linear-gradient(145deg, #a66a2b, #f4d089 44%, #a66a2b);
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.22);
+}
+
+.certificate-award-frame {
+  position: relative;
+  border-radius: 22px;
+  padding: 2.4rem 2.6rem;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0) 28%),
+    radial-gradient(circle at 85% 12%, rgba(255, 238, 201, 0.62), rgba(255, 255, 255, 0) 26%),
+    linear-gradient(180deg, #fffdf6, #fff8e8 52%, #fef3dc);
+  border: 2px solid rgba(166, 106, 43, 0.45);
+  overflow: hidden;
+}
+
+.certificate-award-frame::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border: 1px solid rgba(166, 106, 43, 0.34);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.certificate-ornament {
+  position: absolute;
+  left: 50%;
+  width: 240px;
+  height: 36px;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at center, rgba(166, 106, 43, 0.45), rgba(166, 106, 43, 0) 66%),
+    repeating-linear-gradient(90deg, rgba(166, 106, 43, 0.34) 0 8px, transparent 8px 16px);
+  opacity: 0.6;
+}
+
+.certificate-ornament-top {
+  top: 20px;
+}
+
+.certificate-ornament-bottom {
+  bottom: 20px;
+}
+
+.certificate-award-header {
+  position: relative;
+  text-align: center;
+  padding-top: 0.6rem;
+}
+
+.certificate-award-kicker {
+  display: inline-block;
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
+  color: #7f4f20;
+  font-weight: 700;
+}
+
+.certificate-award-motto {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #7b4b1d;
+}
+
+.certificate-award-motto::after {
+  content: '';
+  display: block;
+  width: min(320px, 80%);
+  height: 1px;
+  margin: 0.35rem auto 0;
+  background: rgba(123, 75, 29, 0.45);
+}
+
+.certificate-award-header h2 {
+  margin: 0.65rem 0 0.45rem;
+  font-family: 'Noto Serif', 'Times New Roman', Cambria, serif;
+  font-size: clamp(1.6rem, 2.3vw, 2.35rem);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #6e3f0f;
+}
+
+.certificate-award-header p {
+  margin: 0;
+  color: #94612f;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+}
+
+.certificate-award-body {
+  position: relative;
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.certificate-award-label {
+  margin: 0;
+  color: #8f6336;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+}
+
+.certificate-award-body h3 {
+  margin: 0.6rem 0 0.35rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.5rem, 2.6vw, 2.3rem);
+  color: #5e360c;
+}
+
+.certificate-award-meta {
+  margin: 0;
+  color: #7c5631;
+  font-size: 0.94rem;
+}
+
+.certificate-award-quote {
+  max-width: 720px;
+  margin: 1.1rem auto 0;
+  color: #6f4a24;
+  line-height: 1.6;
+}
+
+.certificate-award-stats-grid {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+}
+
+.certificate-award-stat {
+  border-radius: 12px;
+  border: 1px solid rgba(166, 106, 43, 0.3);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+}
+
+.certificate-award-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #7f5328;
+}
+
+.certificate-award-stat strong {
+  display: block;
+  margin-top: 0.4rem;
+  color: #513012;
+  font-size: 1.02rem;
+}
+
+.certificate-award-signatures {
+  margin-top: 1.35rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.certificate-award-signatures > div {
+  padding-top: 0.65rem;
+  border-top: 1px dashed rgba(166, 106, 43, 0.4);
+  text-align: left;
+}
+
+.certificate-award-signatures span {
+  display: block;
+  color: #8f6336;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
+.certificate-award-signatures strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #5c360f;
+  font-size: 1rem;
+}
+
+.certificate-award-seal {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1.2rem;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 3px solid #a66a2b;
+  background: radial-gradient(circle at 35% 30%, #ffefbf, #efc15f 72%, #be862d);
+  box-shadow: 0 8px 18px rgba(166, 106, 43, 0.32);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  color: #6a3e12;
+  text-align: center;
+  padding: 0.35rem;
+}
+
+.certificate-award-seal-main {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.certificate-award-seal-sub {
+  font-size: 0.36rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  max-width: 82px;
+}
+
+@media (max-width: 960px) {
+  .certificate-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .certificate-download-btn {
+    justify-content: center;
+  }
+
+  .certificate-award-frame {
+    padding: 1.8rem 1.2rem 2rem;
+  }
+
+  .certificate-award-signatures {
+    grid-template-columns: 1fr;
+  }
+
+  .certificate-award-seal {
+    position: static;
+    margin: 1rem auto 0;
+  }
+}

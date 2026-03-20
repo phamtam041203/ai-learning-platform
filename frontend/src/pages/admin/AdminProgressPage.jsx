@@ -4,6 +4,8 @@ import {
   RotateCcw, Loader, AlertCircle, ChevronDown,
   BookOpen, Award, Eye, Zap, X, FileText
 } from 'lucide-react';
+import { buildApiUrl } from '../../config/api';
+import Loading from '../../components/common/Loading';
 import './AdminProgressPage.css';
 
 const AdminProgressPage = () => {
@@ -17,6 +19,20 @@ const AdminProgressPage = () => {
   const [message, setMessage] = useState(null);
   const [courseDetail, setCourseDetail] = useState(null);
   const [showCourseModal, setShowCourseModal] = useState(false);
+  const [adminAverageScore, setAdminAverageScore] = useState('8.0');
+
+  const getValidatedScore = () => {
+    const score = Number.parseFloat(adminAverageScore);
+    if (Number.isNaN(score)) return null;
+    if (score < 0 || score > 10) return null;
+    return Number(score.toFixed(2));
+  };
+
+  const getApiErrorText = (error) => {
+    if (typeof error?.detail === 'string') return error.detail;
+    if (Array.isArray(error?.detail)) return error.detail.map((e) => e.msg).join(', ');
+    return 'Có lỗi xảy ra';
+  };
 
   useEffect(() => {
     fetchStudents();
@@ -27,7 +43,7 @@ const AdminProgressPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/students', {
+      const response = await fetch(buildApiUrl('/admin/students'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -44,7 +60,7 @@ const AdminProgressPage = () => {
   const fetchCurriculum = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/curriculum/cnpm', {
+      const response = await fetch(buildApiUrl('/curriculum/cnpm'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -60,7 +76,7 @@ const AdminProgressPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/students/${studentId}/enrollments`, {
+      const response = await fetch(buildApiUrl(`/admin/students/${studentId}/enrollments`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -82,15 +98,21 @@ const AdminProgressPage = () => {
 
   const handleCompletePhase = async (phaseId, phaseName) => {
     if (!selectedStudent) return;
+
+    const score = getValidatedScore();
+    if (score === null) {
+      setMessage({ type: 'error', text: 'Điểm trung bình phải nằm trong khoảng 0 đến 10.' });
+      return;
+    }
     
-    const confirm = window.confirm(`Xác nhận hoàn thành giai đoạn "${phaseName}" cho sinh viên ${selectedStudent.full_name}?`);
+    const confirm = window.confirm(`Xác nhận hoàn thành giai đoạn "${phaseName}" cho sinh viên ${selectedStudent.full_name} với điểm ${score.toFixed(2)}?`);
     if (!confirm) return;
 
     try {
       setActionLoading(true);
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/admin/students/${selectedStudent.id}/complete-phase/${phaseId}?score=8.0`,
+        buildApiUrl(`/admin/students/${selectedStudent.id}/complete-phase/${phaseId}?score=${score}`),
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -103,12 +125,7 @@ const AdminProgressPage = () => {
         fetchStudentEnrollments(selectedStudent.id);
       } else {
         const error = await response.json();
-        const errorText = typeof error.detail === 'string' 
-          ? error.detail 
-          : Array.isArray(error.detail) 
-            ? error.detail.map(e => e.msg).join(', ')
-            : 'Có lỗi xảy ra';
-        setMessage({ type: 'error', text: errorText });
+        setMessage({ type: 'error', text: getApiErrorText(error) });
       }
     } catch (err) {
       setMessage({ type: 'error', text: 'Không thể kết nối server' });
@@ -120,11 +137,17 @@ const AdminProgressPage = () => {
   const handleCompleteCourse = async (courseId, courseName) => {
     if (!selectedStudent) return;
 
+    const score = getValidatedScore();
+    if (score === null) {
+      setMessage({ type: 'error', text: 'Điểm trung bình phải nằm trong khoảng 0 đến 10.' });
+      return;
+    }
+
     try {
       setActionLoading(true);
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/admin/students/${selectedStudent.id}/complete-course/${courseId}?score=8.0`,
+        buildApiUrl(`/admin/students/${selectedStudent.id}/complete-course/${courseId}?score=${score}`),
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -137,12 +160,7 @@ const AdminProgressPage = () => {
         fetchStudentEnrollments(selectedStudent.id);
       } else {
         const error = await response.json();
-        const errorText = typeof error.detail === 'string' 
-          ? error.detail 
-          : Array.isArray(error.detail) 
-            ? error.detail.map(e => e.msg).join(', ')
-            : 'Có lỗi xảy ra';
-        setMessage({ type: 'error', text: errorText });
+        setMessage({ type: 'error', text: getApiErrorText(error) });
       }
     } catch (err) {
       setMessage({ type: 'error', text: 'Không thể kết nối server' });
@@ -159,7 +177,7 @@ const AdminProgressPage = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/admin/students/${selectedStudent.id}/courses/${courseId}/lessons`,
+        buildApiUrl(`/admin/students/${selectedStudent.id}/courses/${courseId}/lessons`),
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -190,7 +208,7 @@ const AdminProgressPage = () => {
       setActionLoading(true);
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/admin/students/${selectedStudent.id}/courses/${courseId}/complete-all-quizzes?score=100`,
+        buildApiUrl(`/admin/students/${selectedStudent.id}/courses/${courseId}/complete-all-quizzes?score=100`),
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -229,7 +247,7 @@ const AdminProgressPage = () => {
       setActionLoading(true);
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/admin/students/${selectedStudent.id}/reset-progress`,
+        buildApiUrl(`/admin/students/${selectedStudent.id}/reset-progress`),
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -251,6 +269,59 @@ const AdminProgressPage = () => {
       }
     } catch (err) {
       setMessage({ type: 'error', text: 'Không thể kết nối server' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAssistGraduation = async () => {
+    if (!selectedStudent) return;
+
+    const score = getValidatedScore();
+    if (score === null) {
+      setMessage({ type: 'error', text: 'Điểm trung bình phải nằm trong khoảng 0 đến 10.' });
+      return;
+    }
+
+    const phases = curriculum?.phases || [];
+    if (!phases.length) {
+      setMessage({ type: 'error', text: 'Chưa có dữ liệu lộ trình để hỗ trợ tốt nghiệp.' });
+      return;
+    }
+
+    const confirm = window.confirm(
+      `Xác nhận hỗ trợ tốt nghiệp cho ${selectedStudent.full_name}?\n` +
+      `Hệ thống sẽ hoàn thành tất cả giai đoạn với điểm trung bình ${score.toFixed(2)}.`
+    );
+    if (!confirm) return;
+
+    try {
+      setActionLoading(true);
+      setMessage(null);
+
+      const token = localStorage.getItem('token');
+      for (const phase of phases) {
+        const response = await fetch(
+          buildApiUrl(`/admin/students/${selectedStudent.id}/complete-phase/${phase.id}?score=${score}`),
+          {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(`Giai đoạn ${phase.id}: ${getApiErrorText(error)}`);
+        }
+      }
+
+      setMessage({
+        type: 'success',
+        text: `Đã hỗ trợ hoàn thành tốt nghiệp cho ${selectedStudent.full_name} với điểm trung bình ${score.toFixed(2)}.`
+      });
+      fetchStudentEnrollments(selectedStudent.id);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Không thể hỗ trợ tốt nghiệp lúc này.' });
     } finally {
       setActionLoading(false);
     }
@@ -347,7 +418,12 @@ const AdminProgressPage = () => {
 
           <div className="student-list">
             {loading && !selectedStudent ? (
-              <div className="loading"><Loader className="spin" /> Đang tải...</div>
+              <Loading
+                compact
+                className="admin-progress-loading"
+                title="Dang tai danh sach sinh vien"
+                subtitle="Dang lay du lieu hoc vien va thong tin tien do de quan tri."
+              />
             ) : (
               filteredStudents.map(student => (
                 <div 
@@ -404,6 +480,41 @@ const AdminProgressPage = () => {
                     <span className="value">{enrollments.filter(e => e.status === 'completed').length}</span>
                     <span className="label">Hoàn thành</span>
                   </div>
+                </div>
+              </div>
+
+              <div className="graduation-assist-card">
+                <h3><GraduationCap size={18} /> Hỗ trợ hoàn thành tốt nghiệp</h3>
+                <p>Admin cấp điểm trung bình (thang 10) để hoàn thành toàn bộ giai đoạn cho sinh viên.</p>
+                <div className="graduation-assist-controls">
+                  <label htmlFor="admin-average-score">Điểm trung bình admin cấp</label>
+                  <input
+                    id="admin-average-score"
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value={adminAverageScore}
+                    onChange={(e) => setAdminAverageScore(e.target.value)}
+                    disabled={actionLoading}
+                  />
+                  <button
+                    className="btn-primary"
+                    onClick={handleAssistGraduation}
+                    disabled={actionLoading}
+                  >
+                    {actionLoading ? (
+                      <>
+                        <Loader size={16} className="spin" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <GraduationCap size={16} />
+                        Hỗ trợ tốt nghiệp theo điểm admin cấp
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 

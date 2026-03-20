@@ -8,7 +8,33 @@ import { authAPI } from '../../services/api';
 import EssaySubmission from '../../components/EssaySubmission';
 import LessonAssistant from '../../components/LessonAssistant';
 import DiscussionBoard from '../../components/DiscussionBoard';
+import { buildApiUrl, buildBackendUrl } from '../../config/api';
 import './LessonPage.css';
+
+const getLessonFileLabel = (fileKind) => {
+  if (fileKind === 'pdf') return 'PDF';
+  if (fileKind === 'doc' || fileKind === 'docx') return 'Word';
+  if (fileKind === 'ppt' || fileKind === 'pptx') return 'PowerPoint';
+  return 'Tài liệu';
+};
+
+const getLessonFileKind = (lesson) => {
+  const explicitKind = lesson?.file_kind?.toLowerCase?.();
+  if (explicitKind) {
+    return explicitKind;
+  }
+
+  const rawFileName = lesson?.file_name || lesson?.pdf_file_name || lesson?.file_url || lesson?.pdf_url || '';
+  const normalizedFileName = rawFileName.split('?')[0].toLowerCase();
+
+  if (normalizedFileName.endsWith('.pdf')) return 'pdf';
+  if (normalizedFileName.endsWith('.doc')) return 'doc';
+  if (normalizedFileName.endsWith('.docx')) return 'docx';
+  if (normalizedFileName.endsWith('.ppt')) return 'ppt';
+  if (normalizedFileName.endsWith('.pptx')) return 'pptx';
+
+  return null;
+};
 
 const LessonPage = () => {
   const { courseId, lessonId } = useParams();
@@ -22,6 +48,9 @@ const LessonPage = () => {
   const [quizAnswers, setQuizAnswers] = useState({});
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
   const [quizResult, setQuizResult] = useState(null);
+  const lessonFileUrl = lesson?.file_url ? buildBackendUrl(lesson.file_url) : (lesson?.pdf_url ? buildBackendUrl(lesson.pdf_url) : null);
+  const lessonFileKind = getLessonFileKind(lesson);
+  const canPreviewInline = Boolean(lessonFileUrl && (lesson?.can_preview_inline || lessonFileKind === 'pdf'));
 
   useEffect(() => {
     fetchLessonData();
@@ -36,7 +65,7 @@ const LessonPage = () => {
       console.log(`📚 [LessonPage] Fetching lesson ${lessonId} from course ${courseId}...`);
 
       const response = await fetch(
-        `http://localhost:8000/api/courses/${courseId}/lessons/${lessonId}`,
+        buildApiUrl(`/courses/${courseId}/lessons/${lessonId}`),
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -76,7 +105,7 @@ const LessonPage = () => {
       console.log('📝 Submitting quiz answers:', quizAnswers);
 
       const response = await fetch(
-        `http://localhost:8000/api/courses/${courseId}/lessons/${lessonId}/quiz-submit`,
+        buildApiUrl(`/courses/${courseId}/lessons/${lessonId}/quiz-submit`),
         {
           method: 'POST',
           headers: {
@@ -157,14 +186,14 @@ const LessonPage = () => {
           </div>
 
           <div className="lesson-body">
-            {/* PDF Viewer */}
-            {lesson?.pdf_url && (
+            {/* Lesson Attachment */}
+            {lessonFileUrl && canPreviewInline && (
               <div className="pdf-section">
                 <div className="pdf-header">
                   <FileText size={20} />
-                  <span>Tài liệu bài học</span>
+                  <span>Tài liệu bài học ({getLessonFileLabel(lessonFileKind)})</span>
                   <a 
-                    href={`http://localhost:8000${lesson.pdf_url}`}
+                    href={lessonFileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-open-pdf"
@@ -174,22 +203,57 @@ const LessonPage = () => {
                   </a>
                 </div>
                 <iframe
-                  src={`http://localhost:8000${lesson.pdf_url}`}
+                  src={lessonFileUrl}
                   className="pdf-viewer"
                   title={lesson.title}
                 />
               </div>
             )}
+
+            {lessonFileUrl && !canPreviewInline && (
+              <div className="lesson-file-card">
+                <div className="lesson-file-summary">
+                  <div className="lesson-file-icon">
+                    <FileText size={24} />
+                  </div>
+                  <div>
+                    <h3>{lesson?.file_name || 'Tài liệu bài học'}</h3>
+                    <p>
+                      Tệp {getLessonFileLabel(lessonFileKind)} không hỗ trợ xem trực tiếp trong trang này.
+                      Hãy mở ở tab mới hoặc tải xuống để xem đầy đủ nội dung.
+                    </p>
+                  </div>
+                </div>
+                <div className="lesson-file-actions">
+                  <a
+                    href={lessonFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-open-file"
+                  >
+                    <ExternalLink size={16} />
+                    Mở tài liệu
+                  </a>
+                  <a
+                    href={lessonFileUrl}
+                    className="btn-download-file"
+                  >
+                    <FileText size={16} />
+                    Tải xuống
+                  </a>
+                </div>
+              </div>
+            )}
             
             {/* Text Content if no PDF */}
-            {!lesson?.pdf_url && lesson?.content && (
+            {!lessonFileUrl && lesson?.content && (
               <div className="content-text">
                 {lesson.content}
               </div>
             )}
             
             {/* No content message */}
-            {!lesson?.pdf_url && !lesson?.content && (
+            {!lessonFileUrl && !lesson?.content && (
               <div className="no-content">
                 <AlertCircle size={48} />
                 <p>Chưa có nội dung cho bài học này</p>
@@ -240,7 +304,7 @@ const LessonPage = () => {
                   {quizResult.adaptive_learning ? (
                     <div className="adaptive-learning-card">
                       <div className="adaptive-learning-header">
-                        <h4>Adaptive Learning từ Gemini</h4>
+                        <h4>Adaptive Learning từ VLU AI</h4>
                         <span className={`adaptive-difficulty ${quizResult.adaptive_learning.recommended_difficulty}`}>
                           Độ khó tiếp theo: {quizResult.adaptive_learning.recommended_difficulty}
                         </span>
@@ -411,7 +475,7 @@ const LessonPage = () => {
                 <Edit3 size={24} />
                 <div>
                   <h2>Bài tập tự luận</h2>
-                  <p>Nộp bài làm bằng cách viết văn bản hoặc tải file lên</p>
+                  <p>{lesson?.essay_prompt || 'Nộp bài làm bằng cách viết văn bản hoặc tải file lên'}</p>
                 </div>
               </div>
               

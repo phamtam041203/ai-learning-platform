@@ -1,9 +1,10 @@
 """
 Lesson API Router - Serve lesson PDF files and lesson data
 """
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 import os
 from pathlib import Path
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -11,23 +12,35 @@ router = APIRouter()
 LESSON_FILES_DIR = Path(__file__).resolve().parents[2] / "uploads" / "lessons"
 
 
+def build_cors_headers(origin: str | None = None) -> dict[str, str]:
+    allowed_origin = settings.FRONTEND_BASE_URL
+
+    if origin and origin in settings.ALLOWED_ORIGINS:
+        allowed_origin = origin
+
+    return {
+        "Access-Control-Allow-Origin": allowed_origin,
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Max-Age": "86400",
+        "Vary": "Origin",
+    }
+
+
 @router.options("/lessons/{file_name}")
-async def options_lesson_file(file_name: str):
+async def options_lesson_file(file_name: str, request: Request):
     """Handle CORS preflight requests for PDF files"""
     return Response(
         status_code=200,
-        headers={
-            "Access-Control-Allow-Origin": "http://localhost:3000",
-            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Max-Age": "86400"
-        }
+        headers=build_cors_headers(request.headers.get("origin"))
     )
 
 
 # Supported file extensions and their MIME types
 SUPPORTED_EXTENSIONS = {
     '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     '.ppt': 'application/vnd.ms-powerpoint'
 }
@@ -35,7 +48,7 @@ SUPPORTED_EXTENSIONS = {
 @router.get("/lessons")
 async def list_lessons():
     """
-    List all available lesson files (PDF, PPTX)
+    List all available lesson files (PDF, Word, PowerPoint)
     Path: /api/lessons
     """
     try:
@@ -80,9 +93,9 @@ async def list_lessons():
 
 
 @router.get("/lessons/{file_name}")
-async def get_lesson_file(file_name: str):
+async def get_lesson_file(file_name: str, request: Request):
     """
-    Serve lesson files (PDF, PPTX)
+    Serve lesson files (PDF, Word, PowerPoint)
     Path: /api/lessons/{file_name}
     Example: /api/lessons/Lecture%2000%20-%20Course%20Introduction.pdf
     """
@@ -137,9 +150,7 @@ async def get_lesson_file(file_name: str):
             content=content,
             media_type=media_type,
             headers={
-                "Access-Control-Allow-Origin": "http://localhost:3000",
-                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-                "Access-Control-Allow-Headers": "*",
+                **build_cors_headers(request.headers.get("origin")),
                 "Content-Disposition": f"inline; filename*=UTF-8''{safe_filename}",
                 "Cache-Control": "public, max-age=3600"
             }

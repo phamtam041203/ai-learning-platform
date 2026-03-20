@@ -280,6 +280,25 @@
   color: #94a3b8;
 }
 
+.submission-action {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 999px;
+  background: #0f766e;
+  color: white;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submission-action:hover {
+  background: #0d665f;
+}
+
 /* Detail Panel */
 .detail-panel {
   background: white;
@@ -377,6 +396,56 @@
   font-family: inherit;
   color: #334155;
   line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+  .review-content {
+    grid-template-columns: 1fr;
+  }
+
+  .submissions-panel,
+  .detail-panel {
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .review-header {
+    padding: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-info h1 {
+    font-size: 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .header-info .course-code {
+    margin-left: 0;
+  }
+
+  .review-content {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .panel-header {
+    padding: 16px;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .file-attachment {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* File Attachment */

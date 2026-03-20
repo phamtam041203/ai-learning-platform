@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MessageSquare, ThumbsUp, Reply, Trash2, Edit2, Send, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { discussionAPI } from '../services/api';
+import { buildBackendUrl } from '../config/api';
 import './DiscussionBoard.css';
 
 /** Format relative time (Vietnamese) */
@@ -14,15 +15,21 @@ function timeAgo(dateStr) {
 }
 
 /** Avatar initials */
-function Avatar({ name }) {
+function Avatar({ name, avatar }) {
   const initials = name
     ? name.split(' ').slice(-2).map(w => w[0]).join('').toUpperCase()
     : '?';
   const colors = ['#7c3aed', '#2563eb', '#16a34a', '#dc2626', '#ea580c', '#0891b2'];
   const color = colors[name?.charCodeAt(0) % colors.length] ?? '#6b7280';
+  const avatarUrl = avatar ? buildBackendUrl(avatar) : null;
+
   return (
-    <div className="disc-avatar" style={{ background: color }}>
-      {initials}
+    <div className="disc-avatar" style={avatarUrl ? undefined : { background: color }}>
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={name || 'Ảnh đại diện'} className="disc-avatar-image" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
@@ -58,7 +65,7 @@ function CommentItem({ comment, currentUserId, onDelete, onLike, onReply, onUpda
 
   return (
     <div className={`disc-comment ${depth > 0 ? 'disc-comment--reply' : ''}`}>
-      <Avatar name={comment.author_name} />
+      <Avatar name={comment.author_name} avatar={comment.author_avatar} />
 
       <div className="disc-comment-body">
         <div className="disc-comment-meta">
@@ -185,6 +192,14 @@ export default function DiscussionBoard({ lessonId }) {
     }
   })();
 
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || localStorage.getItem('currentUser') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+
   const fetchComments = useCallback(async () => {
     try {
       setLoading(true);
@@ -283,7 +298,10 @@ export default function DiscussionBoard({ lessonId }) {
 
       {/* Composer */}
       <div className="disc-composer">
-        <Avatar name={currentUserId ? 'Bạn' : '?'} />
+        <Avatar
+          name={currentUser?.full_name || currentUser?.name || (currentUserId ? 'Bạn' : '?')}
+          avatar={currentUser?.avatar || null}
+        />
         <div className="disc-composer-inner">
           <textarea
             className="disc-textarea"

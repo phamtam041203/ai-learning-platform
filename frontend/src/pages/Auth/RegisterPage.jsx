@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../../config/api';
 import './RegisterPage.css';
 
 const RegisterPage = () => {
@@ -25,6 +26,49 @@ const RegisterPage = () => {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [generatedMSSV, setGeneratedMSSV] = useState('');
+
+  const termsRowStyle = {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    gap: '0.75rem',
+    width: '100%',
+  };
+
+  const termsCheckboxStyle = {
+    width: '18px',
+    height: '18px',
+    marginTop: '0.2rem',
+    flexShrink: 0,
+    accentColor: 'var(--primary-dark, #9f0d24)',
+    cursor: 'pointer',
+  };
+
+  const termsLabelStyle = {
+    display: 'block',
+    flex: 1,
+    minWidth: 0,
+    fontSize: '0.9rem',
+    lineHeight: 1.7,
+    color: 'var(--text-secondary, #6b7280)',
+    textAlign: 'left',
+    whiteSpace: 'normal',
+    wordBreak: 'normal',
+    overflowWrap: 'break-word',
+    writingMode: 'horizontal-tb',
+    textOrientation: 'mixed',
+    cursor: 'pointer',
+    userSelect: 'none',
+  };
+
+  const termsLinkStyle = {
+    color: 'var(--primary-dark, #9f0d24)',
+    fontWeight: 600,
+    textDecoration: 'none',
+    display: 'inline',
+    writingMode: 'horizontal-tb',
+    textOrientation: 'mixed',
+  };
 
   // Reset dark mode when entering register page
   useEffect(() => {
@@ -123,13 +167,7 @@ const RegisterPage = () => {
   useEffect(() => {
     if (!formData.intake_year || !formData.specialization) return;
 
-    const specializationMap = {
-      'Công nghệ phần mềm': 'CNPM',
-      'Công nghệ dữ liệu': 'CNDL',
-      'An ninh mạng': 'ANM',
-    };
-
-    const newClassName = `${specializationMap[formData.specialization] || 'CNTT'}-K${formData.intake_year}`;
+    const newClassName = `CNPM-K${formData.intake_year}`;
 
     if (formData.class_name !== newClassName) {
       setFormData(prev => ({
@@ -150,7 +188,7 @@ const RegisterPage = () => {
   const fetchMSSVPreview = async (intakeYear) => {
     setLoadingPreview(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/auth/preview-mssv/${intakeYear}`);
+      const response = await fetch(buildApiUrl(`/auth/preview-mssv/${intakeYear}`));
       if (response.ok) {
         const data = await response.json();
         setPreviewMSSV(data);
@@ -262,7 +300,7 @@ const RegisterPage = () => {
         education_type: '0'
       };
 
-      const response = await fetch('http://localhost:8000/api/auth/register/student', {
+      const response = await fetch(buildApiUrl('/auth/register/student'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -511,17 +549,15 @@ const RegisterPage = () => {
                     <label className="form-label">Chuyên ngành</label>
                     <div className="input-wrapper">
                       <div className="input-icon"><BookIcon /></div>
-                      <select
+                      <input
+                        type="text"
                         name="specialization"
-                        value={formData.specialization}
-                        onChange={handleChange}
-                        className="form-input"
-                      >
-                        <option value="Công nghệ phần mềm">Công nghệ phần mềm</option>
-                        <option value="Công nghệ dữ liệu">Công nghệ dữ liệu</option>
-                        <option value="An ninh mạng">An ninh mạng</option>
-                      </select>
+                        value="Công nghệ phần mềm (CNPM)"
+                        readOnly
+                        className="form-input auto-filled"
+                      />
                     </div>
+                    <small className="form-hint">Hiện tại hệ thống chỉ tiếp nhận sinh viên chuyên ngành CNPM</small>
                   </div>
 
                   {/* Class (Auto) */}
@@ -538,7 +574,7 @@ const RegisterPage = () => {
                         placeholder="CNTT-K27"
                       />
                     </div>
-                    <small className="form-hint">Tự động điền theo khóa và ngành</small>
+                    <small className="form-hint">Tự động điền theo khóa và chuyên ngành CNPM</small>
                   </div>
 
                   {/* Email */}
@@ -654,22 +690,26 @@ const RegisterPage = () => {
                   </div>
 
                   {/* Terms */}
-                  <div className="form-group">
-                    <label className="checkbox-label">
+                  <div className="form-group terms-group">
+                    <div className="terms-row" style={termsRowStyle}>
                       <input
+                        id="agreedToTerms"
                         type="checkbox"
                         name="agreedToTerms"
                         checked={formData.agreedToTerms}
                         onChange={handleChange}
                         className="checkbox-input"
+                        style={termsCheckboxStyle}
                       />
-                      <span>
+                      <label htmlFor="agreedToTerms" className="terms-label" style={termsLabelStyle}>
+                        <span className="terms-text" style={termsLabelStyle}>
                         Tôi đồng ý với{' '}
-                        <a href="/terms" className="link">Điều khoản sử dụng</a>
+                        <a href="/terms" className="terms-link" style={termsLinkStyle}>Điều khoản sử dụng</a>
                         {' '}và{' '}
-                        <a href="/privacy" className="link">Chính sách bảo mật</a>
-                      </span>
-                    </label>
+                        <a href="/privacy" className="terms-link" style={termsLinkStyle}>Chính sách bảo mật</a>
+                        </span>
+                      </label>
+                    </div>
                     {errors.agreedToTerms && (
                       <div className="error-message">
                         <AlertIcon />

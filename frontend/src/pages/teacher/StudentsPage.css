@@ -238,7 +238,7 @@
 
 .student-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
   padding: 1rem 0;
@@ -246,33 +246,44 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.stat-item {
+.student-stat-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
   text-align: center;
+  min-width: 0;
+  padding: 1rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
 }
 
-.stat-item svg {
+.student-stat-card svg {
   color: #4f46e5;
+  flex-shrink: 0;
 }
 
-.stat-item > div {
+.student-stat-copy {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
 }
 
-.stat-value {
+.student-stat-value {
   font-size: 1.25rem;
   font-weight: 700;
   color: #1f2937;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
-.stat-label {
+.student-stat-label {
   font-size: 0.75rem;
   color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .btn-view-detail {
@@ -522,7 +533,7 @@
   }
 
   .student-stats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .info-grid {
