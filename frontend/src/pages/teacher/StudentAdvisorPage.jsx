@@ -76,7 +76,6 @@ const StudentAdvisorPage = () => {
             {
               role: 'assistant',
               text: item.response,
-              source: item.response_source,
               checklist: Array.isArray(item.checklist) ? item.checklist : []
             }
           ];
@@ -130,8 +129,7 @@ const StudentAdvisorPage = () => {
         ...prev,
         {
           role: 'assistant',
-          text: response?.answer || 'Hiện chưa có phản hồi. Bạn vui lòng thử lại.',
-          source: response?.source || 'local'
+          text: response?.answer || 'Hiện chưa có phản hồi. Bạn vui lòng thử lại.'
         }
       ]);
     } catch (error) {
@@ -164,7 +162,6 @@ const StudentAdvisorPage = () => {
         {
           role: 'assistant',
           text: response?.message || 'Đã tạo checklist 7 ngày.',
-          source: 'rule',
           checklist: Array.isArray(response?.checklist) ? response.checklist : []
         }
       ]);
@@ -278,9 +275,6 @@ const StudentAdvisorPage = () => {
                 </div>
                 <div className="chat-bubble">
                   {message.text}
-                  {message.role === 'assistant' && message.source && (
-                    <div className="message-source">Nguồn: {message.source}</div>
-                  )}
                   {Array.isArray(message.checklist) && message.checklist.length > 0 && (
                     <div className="checklist-box">
                       {message.checklist.map((item) => (

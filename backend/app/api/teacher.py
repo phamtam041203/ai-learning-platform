@@ -316,6 +316,14 @@ def _build_teacher_student_snapshot(
     student_id: int,
     course_id: int | None = None,
 ) -> dict:
+    def _score_to_percent(score: float | None) -> float | None:
+        if score is None:
+            return None
+        numeric = float(score)
+        if numeric <= 10:
+            numeric *= 10
+        return max(0.0, min(100.0, numeric))
+
     enrollment_query = db.query(Enrollment).join(Course).filter(
         Enrollment.student_id == student_id,
         Course.teacher_id == teacher_id,
@@ -348,12 +356,13 @@ def _build_teacher_student_snapshot(
             continue
 
         avg_score = _calculate_average_score(db, student_id, course.id)
+        avg_score_percent = _score_to_percent(avg_score)
         progress = float(enrollment.progress or 0)
 
         course_ids.append(course.id)
         progress_values.append(progress)
-        if avg_score is not None:
-            score_values.append(float(avg_score))
+        if avg_score_percent is not None:
+            score_values.append(float(avg_score_percent))
 
         course_snapshots.append({
             "course_id": course.id,
@@ -361,7 +370,7 @@ def _build_teacher_student_snapshot(
             "course_code": course.course_code,
             "status": enrollment.status.value if hasattr(enrollment.status, "value") else str(enrollment.status),
             "progress": round(progress, 2),
-            "average_score": round(float(avg_score), 2) if avg_score is not None else None,
+            "average_score": round(float(avg_score_percent), 2) if avg_score_percent is not None else None,
         })
 
     lesson_ids = [lesson_id for (lesson_id,) in db.query(Lesson.id).filter(Lesson.course_id.in_(course_ids)).all()]
@@ -374,7 +383,7 @@ def _build_teacher_student_snapshot(
 
         for row in quiz_rows:
             recent_quizzes.append({
-                "score": round(float(row.score or 0), 2),
+                "score": round(float(_score_to_percent(float(row.score or 0)) or 0), 2),
                 "completed_at": row.completed_at.isoformat() if row.completed_at else None,
                 "lesson_id": row.lesson_id,
             })
@@ -628,44 +637,78 @@ def _answer_teacher_student_question(snapshot: dict, question: str) -> str:
     actions = _build_teacher_actions(snapshot)
 
     risk_vi = {"low": "thấp", "medium": "trung bình", "high": "cao"}.get(risk_level, "chưa xác định")
-    score_text = f"{avg_score:.2f}" if isinstance(avg_score, (int, float)) else "chưa đủ dữ liệu"
+    score_text = f"{avg_score:.1f}/100" if isinstance(avg_score, (int, float)) else "chưa đủ dữ liệu"
+
+    summary_block = (
+        f"Tổng quan {name}:\n"
+        f"- Tiến độ trung bình: {avg_progress:.1f}%\n"
+        f"- Điểm trung bình: {score_text}\n"
+        f"- Mức rủi ro: {risk_vi}"
+    )
+
+    if any(keyword in q for keyword in ["điểm mạnh", "mạnh", "khả năng học tốt", "học tốt hơn"]):
+        high_progress_courses = [
+            item.get("course_name")
+            for item in courses
+            if float(item.get("progress") or 0) >= 85
+        ]
+        strengths_text = ", ".join(high_progress_courses[:3]) if high_progress_courses else "chưa nổi bật rõ theo dữ liệu hiện tại"
+        return (
+            f"{summary_block}\n"
+            f"Điểm mạnh hiện tại: {strengths_text}.\n"
+            f"Đề xuất cho giảng viên: {actions[0] if actions else 'duy trì theo dõi định kỳ'}"
+        )
+
+    if any(keyword in q for keyword in ["yếu", "điểm yếu", "yếu ở đâu", "hổng"]):
+        weakest_course = min(courses, key=lambda item: float(item.get("average_score") or 101), default=None)
+        weak_text = (
+            f"{weakest_course.get('course_name')} (điểm {weakest_course.get('average_score', 0):.1f}/100)"
+            if weakest_course and weakest_course.get("average_score") is not None
+            else "chưa đủ dữ liệu để xác định môn yếu nhất"
+        )
+        return (
+            f"{summary_block}\n"
+            f"Điểm cần cải thiện: {weak_text}.\n"
+            f"Hành động ưu tiên: {actions[0] if actions else 'tổ chức buổi trao đổi ngắn để xác định khó khăn chính'}"
+        )
 
     if any(keyword in q for keyword in ["nguy cơ", "rủi ro", "cảnh báo"]):
         return (
-            f"Mức rủi ro hiện tại của {name} là {risk_vi}. "
-            f"Tiến độ trung bình {avg_progress:.1f}% và điểm trung bình {score_text}. "
+            f"{summary_block}\n"
             f"Gợi ý ưu tiên: {actions[0] if actions else 'tiếp tục theo dõi thêm 1 tuần'}"
         )
 
     if any(keyword in q for keyword in ["điểm", "quiz", "kết quả", "học lực"]):
-        recent_scores = [str(item.get("score")) for item in recent_quizzes[:3]]
+        recent_scores = [f"{float(item.get('score') or 0):.1f}" for item in recent_quizzes[:3]]
         recent_text = ", ".join(recent_scores) if recent_scores else "chưa có dữ liệu quiz gần đây"
         return (
-            f"Tổng quan kết quả của {name}: điểm trung bình {score_text}, "
-            f"tiến độ trung bình {avg_progress:.1f}%. "
-            f"Điểm quiz gần nhất: {recent_text}. "
+            f"{summary_block}\n"
+            f"Điểm quiz gần nhất: {recent_text}.\n"
             f"Hành động đề xuất: {actions[0] if actions else 'duy trì nhịp học ổn định'}."
         )
 
     if any(keyword in q for keyword in ["tiến độ", "hoàn thành", "chậm", "nhanh"]):
         course_bits = [
-            f"{item.get('course_name')}: {item.get('progress', 0)}%"
+            f"{item.get('course_name')}: {float(item.get('progress') or 0):.1f}%"
             for item in courses[:4]
         ]
         course_text = "; ".join(course_bits) if course_bits else "chưa có khóa học trong phạm vi theo dõi"
         return (
-            f"Tiến độ của {name}: trung bình {avg_progress:.1f}% trên {scope.get('course_count', 0)} khóa học. "
-            f"Chi tiết: {course_text}. "
+            f"{summary_block}\n"
+            f"Chi tiết theo môn: {course_text}.\n"
             f"Khuyến nghị: {actions[0] if actions else 'duy trì theo dõi định kỳ'}"
         )
 
     if any(keyword in q for keyword in ["nên", "đề xuất", "kế hoạch", "can thiệp", "hỗ trợ"]):
-        bullet_text = " | ".join(actions) if actions else "Tiếp tục theo dõi kết quả theo tuần"
-        return f"Kế hoạch hỗ trợ đề xuất cho {name}: {bullet_text}."
+        bullet_text = "\n".join([f"- {item}" for item in actions]) if actions else "- Tiếp tục theo dõi kết quả theo tuần"
+        return (
+            f"{summary_block}\n"
+            f"Kế hoạch hỗ trợ đề xuất:\n{bullet_text}"
+        )
 
     return (
-        f"Tổng quan sinh viên {name}: tiến độ trung bình {avg_progress:.1f}%, điểm trung bình {score_text}, "
-        f"mức rủi ro {risk_vi}. Bạn có thể hỏi rõ hơn theo hướng: tiến độ, điểm quiz, rủi ro, hoặc kế hoạch can thiệp."
+        f"{summary_block}\n"
+        "Bạn có thể hỏi rõ hơn theo hướng: tiến độ theo môn, điểm quiz, điểm yếu, điểm mạnh, hoặc kế hoạch can thiệp."
     )
 
 

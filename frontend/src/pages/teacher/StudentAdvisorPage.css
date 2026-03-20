@@ -255,12 +255,6 @@
   white-space: pre-wrap;
 }
 
-.message-source {
-  margin-top: 8px;
-  font-size: 0.78rem;
-  color: #617798;
-}
-
 .checklist-box {
   margin-top: 10px;
   border-top: 1px solid #d8e4f5;
