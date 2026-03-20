@@ -13,6 +13,7 @@ import AnalyticsPage from './pages/teacher/AnalyticsPage';
 import EssayReviewPage from './pages/teacher/EssayReviewPage';
 import CourseDetailPage from './pages/teacher/CourseDetailPage';
 import QuizManagerPage from './pages/teacher/QuizManagerPage';
+import StudentAdvisorPage from './pages/teacher/StudentAdvisorPage';
 import DashboardPage from './pages/student/DashboardPage.jsx';
 import CourseDetail from './pages/student/CourseDetail.jsx';
 import CoursesPage from './pages/student/CoursesPage.jsx';
@@ -70,6 +71,7 @@ function App() {
         <Route path="/teacher/courses/:courseId" element={<CourseDetailPage />} />
         <Route path="/teacher/courses/:courseId/quizzes" element={<QuizManagerPage />} />
         <Route path="/teacher/students" element={<StudentsPage />} />
+        <Route path="/teacher/student-advisor" element={<StudentAdvisorPage />} />
         <Route path="/teacher/analytics" element={<AnalyticsPage />} />
         <Route path="/teacher/essays" element={<EssayReviewPage />} />
         <Route path="/teacher/courses/:courseId/essays" element={<EssayReviewPage />} />

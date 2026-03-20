@@ -3,12 +3,15 @@
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+import json
+import logging
 import re
 import shutil
 import uuid
 
 from docx import Document
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
+import httpx
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -17,10 +20,16 @@ from app.database import get_db
 from app.dependencies import get_current_teacher
 from app.models.assessment import Assessment, AssessmentType, Question, QuizResult, Submission
 from app.models.course import Course, Enrollment, EnrollmentStatus, Lesson, LessonProgress
+from app.models.teacher_chat import TeacherStudentChatHistory
 from app.models.user import StudentProfile, TeacherProfile, User
+from app.core.config import settings
 from app.services.analytics_service import compute_teacher_analytics
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+GEMINI_API_KEY = settings.GEMINI_API_KEY
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 LESSON_UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads" / "lessons"
 QUIZ_UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads" / "quizzes"
@@ -44,6 +53,17 @@ class TeacherCoursePayload(BaseModel):
 
 class EnrollmentApprovalRequest(BaseModel):
     approve: bool
+
+
+class TeacherStudentChatRequest(BaseModel):
+    student_id: int
+    message: str = Field(min_length=3, max_length=1200)
+    course_id: int | None = None
+
+
+class TeacherInterventionPlanRequest(BaseModel):
+    student_id: int
+    course_id: int | None = None
 
 
 class TeacherQuizQuestionRequest(BaseModel):
@@ -288,6 +308,365 @@ def _teacher_stats(db: Session, teacher_id: int) -> dict:
         "total_quizzes": total_quizzes,
         "average_rating": 4.8,
     }
+
+
+def _build_teacher_student_snapshot(
+    db: Session,
+    teacher_id: int,
+    student_id: int,
+    course_id: int | None = None,
+) -> dict:
+    enrollment_query = db.query(Enrollment).join(Course).filter(
+        Enrollment.student_id == student_id,
+        Course.teacher_id == teacher_id,
+        Enrollment.status.in_([EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED, EnrollmentStatus.PENDING]),
+    )
+
+    if course_id is not None:
+        enrollment_query = enrollment_query.filter(Enrollment.course_id == course_id)
+
+    enrollments = enrollment_query.order_by(Enrollment.enrolled_at.desc()).all()
+    if not enrollments:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy sinh viên trong khóa học do bạn phụ trách",
+        )
+
+    student = db.query(User).filter(User.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    profile = db.query(StudentProfile).filter(StudentProfile.user_id == student_id).first()
+
+    course_snapshots: list[dict] = []
+    progress_values: list[float] = []
+    score_values: list[float] = []
+    course_ids: list[int] = []
+    for enrollment in enrollments:
+        course = db.query(Course).filter(Course.id == enrollment.course_id).first()
+        if not course:
+            continue
+
+        avg_score = _calculate_average_score(db, student_id, course.id)
+        progress = float(enrollment.progress or 0)
+
+        course_ids.append(course.id)
+        progress_values.append(progress)
+        if avg_score is not None:
+            score_values.append(float(avg_score))
+
+        course_snapshots.append({
+            "course_id": course.id,
+            "course_name": course.course_name,
+            "course_code": course.course_code,
+            "status": enrollment.status.value if hasattr(enrollment.status, "value") else str(enrollment.status),
+            "progress": round(progress, 2),
+            "average_score": round(float(avg_score), 2) if avg_score is not None else None,
+        })
+
+    lesson_ids = [lesson_id for (lesson_id,) in db.query(Lesson.id).filter(Lesson.course_id.in_(course_ids)).all()]
+    recent_quizzes: list[dict] = []
+    if lesson_ids:
+        quiz_rows = db.query(QuizResult).filter(
+            QuizResult.user_id == student_id,
+            QuizResult.lesson_id.in_(lesson_ids),
+        ).order_by(QuizResult.completed_at.desc(), QuizResult.id.desc()).limit(8).all()
+
+        for row in quiz_rows:
+            recent_quizzes.append({
+                "score": round(float(row.score or 0), 2),
+                "completed_at": row.completed_at.isoformat() if row.completed_at else None,
+                "lesson_id": row.lesson_id,
+            })
+
+    avg_progress = round(sum(progress_values) / len(progress_values), 2) if progress_values else 0.0
+    avg_score = round(sum(score_values) / len(score_values), 2) if score_values else None
+    completed_courses = sum(1 for item in course_snapshots if (item.get("progress") or 0) >= 100)
+
+    risk_level = "low"
+    if avg_progress < 50 or (avg_score is not None and avg_score < 60):
+        risk_level = "high"
+    elif avg_progress < 75 or (avg_score is not None and avg_score < 75):
+        risk_level = "medium"
+
+    return {
+        "student": {
+            "id": student.id,
+            "student_id": profile.student_id if profile else None,
+            "full_name": student.full_name,
+            "email": student.email,
+            "major": profile.major if profile else None,
+            "specialization": profile.specialization if profile else None,
+        },
+        "teacher_scope": {
+            "course_count": len(course_snapshots),
+            "completed_courses": completed_courses,
+            "average_progress": avg_progress,
+            "average_score": avg_score,
+            "risk_level": risk_level,
+        },
+        "courses": course_snapshots,
+        "recent_quizzes": recent_quizzes,
+    }
+
+
+def _build_teacher_actions(snapshot: dict) -> list[str]:
+    scope = snapshot.get("teacher_scope", {})
+    avg_progress = float(scope.get("average_progress") or 0)
+    avg_score = scope.get("average_score")
+    risk_level = scope.get("risk_level")
+
+    actions: list[str] = []
+    if risk_level == "high":
+        actions.append("Hẹn 1 buổi trao đổi 1-1 trong tuần này để tìm nguyên nhân học chậm")
+        actions.append("Giao mục tiêu ngắn hạn: hoàn thành 1 bài học + 1 quiz trước buổi sau")
+    elif risk_level == "medium":
+        actions.append("Theo dõi tiến độ theo tuần và nhắc nhở lịch học cố định")
+        actions.append("Cho làm lại quiz các phần điểm thấp để củng cố kiến thức")
+    else:
+        actions.append("Duy trì nhịp học hiện tại và giao thêm bài tập nâng cao phù hợp")
+
+    if avg_score is not None and avg_score < 70:
+        actions.append("Ưu tiên ôn tập nội dung nền tảng trước khi mở rộng nội dung mới")
+    if avg_progress < 60:
+        actions.append("Chia nhỏ mục tiêu theo từng ngày để tăng tỉ lệ hoàn thành")
+
+    return actions[:3]
+
+
+def _build_7_day_checklist(snapshot: dict) -> list[dict]:
+    scope = snapshot.get("teacher_scope", {})
+    student = snapshot.get("student", {})
+    risk_level = scope.get("risk_level", "low")
+    avg_progress = float(scope.get("average_progress") or 0)
+    avg_score = scope.get("average_score")
+    course_name = (snapshot.get("courses") or [{}])[0].get("course_name", "môn đang học")
+
+    score_note = "chưa có điểm" if avg_score is None else f"điểm TB {avg_score:.1f}"
+    intensity = "cao" if risk_level == "high" else ("vừa" if risk_level == "medium" else "duy trì")
+
+    day_items = [
+        (1, "Đánh giá nhanh", [
+            f"Trao đổi 1-1 với {student.get('full_name') or 'sinh viên'} trong 15-20 phút",
+            f"Xác nhận trở ngại chính ở {course_name} (kiến thức nền, thời gian, thái độ học)",
+            f"Thống nhất mục tiêu tuần: tăng tiến độ từ {avg_progress:.0f}% lên mốc cao hơn",
+        ]),
+        (2, "Củng cố nền tảng", [
+            "Giao 1 phần lý thuyết trọng tâm cần ôn lại",
+            "Yêu cầu ghi chú 5 ý chính sau khi học",
+            f"Kiểm tra ngắn 5-10 câu để đo lại mức hiểu ({score_note})",
+        ]),
+        (3, "Luyện tập có hướng dẫn", [
+            "Cho làm 1 bài quiz/bài tập ngắn có phản hồi ngay",
+            "Chỉ ra 2 lỗi điển hình và cách sửa",
+            "Đặt mốc hoàn thành trong ngày, không dồn bài",
+        ]),
+        (4, "Theo dõi tiến độ", [
+            "Rà soát tiến độ bài học đã giao",
+            "Nếu chưa đạt, chia nhỏ mục tiêu theo từng khung 25 phút",
+            f"Nhắc lịch học cố định theo mức can thiệp {intensity}",
+        ]),
+        (5, "Ứng dụng thực hành", [
+            "Giao 1 nhiệm vụ áp dụng kiến thức vào tình huống thực tế",
+            "Yêu cầu sinh viên trình bày cách làm ngắn gọn",
+            "Đánh dấu phần còn hổng để sửa trong ngày 6",
+        ]),
+        (6, "Đánh giá lại", [
+            "Tổ chức kiểm tra nhanh/quiz lại phần đã ôn",
+            "So sánh kết quả trước và sau can thiệp",
+            "Chốt 2 hành động cần duy trì cho tuần kế tiếp",
+        ]),
+        (7, "Tổng kết tuần", [
+            "Tổng kết tiến bộ theo tiến độ + điểm",
+            "Phản hồi tích cực và chỉ ra điểm ưu tiên tuần sau",
+            "Xác nhận kế hoạch duy trì nhịp học tối thiểu 30-45 phút/ngày",
+        ]),
+    ]
+
+    return [
+        {
+            "day": day,
+            "title": title,
+            "items": items,
+        }
+        for day, title, items in day_items
+    ]
+
+
+async def _ask_gemini_teacher_advisor(question: str, snapshot: dict) -> str | None:
+    if not GEMINI_API_KEY:
+        return None
+
+    safe_snapshot = {
+        "student": snapshot.get("student"),
+        "teacher_scope": snapshot.get("teacher_scope"),
+        "courses": snapshot.get("courses"),
+        "recent_quizzes": snapshot.get("recent_quizzes"),
+    }
+
+    prompt = f"""Bạn là trợ lý AI dành cho giảng viên đại học.
+
+MỤC TIÊU:
+- Trả lời tự nhiên, ngắn gọn, thực tế, có hành động cụ thể cho giảng viên.
+
+GUARDRAILS BẮT BUỘC:
+- Chỉ dùng dữ liệu trong DATA SNAPSHOT bên dưới.
+- Không bịa số liệu, không suy diễn ngoài dữ liệu.
+- Nếu dữ liệu chưa đủ, phải nói rõ "chưa đủ dữ liệu" và đề xuất bước thu thập thêm.
+- Không đưa kết luận chẩn đoán y tế/tâm lý.
+- Giữ giọng chuyên nghiệp, hỗ trợ ra quyết định sư phạm.
+
+DATA SNAPSHOT:
+{json.dumps(safe_snapshot, ensure_ascii=False)}
+
+CÂU HỎI CỦA GIẢNG VIÊN:
+{question}
+
+YÊU CẦU TRẢ LỜI:
+- Tối đa 6 câu.
+- Có 1-3 hành động ưu tiên.
+"""
+
+    try:
+        async with httpx.AsyncClient(timeout=35.0) as client:
+            response = await client.post(
+                f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature": 0.35,
+                        "maxOutputTokens": 900,
+                        "topP": 0.9,
+                        "topK": 32,
+                    },
+                },
+            )
+
+        if response.status_code != 200:
+            logger.warning("Gemini teacher advisor error: %s", response.text)
+            return None
+
+        payload = response.json()
+        candidates = payload.get("candidates") or []
+        if not candidates:
+            return None
+        parts = (candidates[0].get("content") or {}).get("parts") or []
+        if not parts or "text" not in parts[0]:
+            return None
+        return str(parts[0]["text"]).strip()
+    except Exception as exc:
+        logger.warning("Gemini teacher advisor failed: %s", exc)
+        return None
+
+
+def _save_teacher_chat_history(
+    db: Session,
+    *,
+    teacher_id: int,
+    student_id: int,
+    course_id: int | None,
+    message: str,
+    response: str,
+    response_source: str,
+    request_type: str = "chat",
+    checklist: list[dict] | None = None,
+) -> None:
+    entry = TeacherStudentChatHistory(
+        teacher_id=teacher_id,
+        student_id=student_id,
+        course_id=course_id,
+        request_type=request_type,
+        message=message,
+        response=response,
+        response_source=response_source,
+        checklist_json=json.dumps(checklist, ensure_ascii=False) if checklist else None,
+    )
+    try:
+        db.add(entry)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Failed to save teacher chat history: %s", exc)
+
+
+def _serialize_teacher_chat_history(entry: TeacherStudentChatHistory) -> dict:
+    checklist: list[dict] = []
+    if entry.checklist_json:
+        try:
+            loaded = json.loads(entry.checklist_json)
+            if isinstance(loaded, list):
+                checklist = loaded
+        except Exception:
+            checklist = []
+
+    return {
+        "id": entry.id,
+        "teacher_id": entry.teacher_id,
+        "student_id": entry.student_id,
+        "course_id": entry.course_id,
+        "request_type": entry.request_type,
+        "message": entry.message,
+        "response": entry.response,
+        "response_source": entry.response_source,
+        "checklist": checklist,
+        "created_at": entry.created_at.isoformat() if entry.created_at else None,
+    }
+
+
+def _answer_teacher_student_question(snapshot: dict, question: str) -> str:
+    q = (question or "").strip().lower()
+    student = snapshot.get("student", {})
+    scope = snapshot.get("teacher_scope", {})
+    courses = snapshot.get("courses", [])
+    recent_quizzes = snapshot.get("recent_quizzes", [])
+
+    name = student.get("full_name") or "sinh viên"
+    avg_progress = scope.get("average_progress", 0)
+    avg_score = scope.get("average_score")
+    risk_level = scope.get("risk_level", "low")
+    actions = _build_teacher_actions(snapshot)
+
+    risk_vi = {"low": "thấp", "medium": "trung bình", "high": "cao"}.get(risk_level, "chưa xác định")
+    score_text = f"{avg_score:.2f}" if isinstance(avg_score, (int, float)) else "chưa đủ dữ liệu"
+
+    if any(keyword in q for keyword in ["nguy cơ", "rủi ro", "cảnh báo"]):
+        return (
+            f"Mức rủi ro hiện tại của {name} là {risk_vi}. "
+            f"Tiến độ trung bình {avg_progress:.1f}% và điểm trung bình {score_text}. "
+            f"Gợi ý ưu tiên: {actions[0] if actions else 'tiếp tục theo dõi thêm 1 tuần'}"
+        )
+
+    if any(keyword in q for keyword in ["điểm", "quiz", "kết quả", "học lực"]):
+        recent_scores = [str(item.get("score")) for item in recent_quizzes[:3]]
+        recent_text = ", ".join(recent_scores) if recent_scores else "chưa có dữ liệu quiz gần đây"
+        return (
+            f"Tổng quan kết quả của {name}: điểm trung bình {score_text}, "
+            f"tiến độ trung bình {avg_progress:.1f}%. "
+            f"Điểm quiz gần nhất: {recent_text}. "
+            f"Hành động đề xuất: {actions[0] if actions else 'duy trì nhịp học ổn định'}."
+        )
+
+    if any(keyword in q for keyword in ["tiến độ", "hoàn thành", "chậm", "nhanh"]):
+        course_bits = [
+            f"{item.get('course_name')}: {item.get('progress', 0)}%"
+            for item in courses[:4]
+        ]
+        course_text = "; ".join(course_bits) if course_bits else "chưa có khóa học trong phạm vi theo dõi"
+        return (
+            f"Tiến độ của {name}: trung bình {avg_progress:.1f}% trên {scope.get('course_count', 0)} khóa học. "
+            f"Chi tiết: {course_text}. "
+            f"Khuyến nghị: {actions[0] if actions else 'duy trì theo dõi định kỳ'}"
+        )
+
+    if any(keyword in q for keyword in ["nên", "đề xuất", "kế hoạch", "can thiệp", "hỗ trợ"]):
+        bullet_text = " | ".join(actions) if actions else "Tiếp tục theo dõi kết quả theo tuần"
+        return f"Kế hoạch hỗ trợ đề xuất cho {name}: {bullet_text}."
+
+    return (
+        f"Tổng quan sinh viên {name}: tiến độ trung bình {avg_progress:.1f}%, điểm trung bình {score_text}, "
+        f"mức rủi ro {risk_vi}. Bạn có thể hỏi rõ hơn theo hướng: tiến độ, điểm quiz, rủi ro, hoặc kế hoạch can thiệp."
+    )
 
 
 def _serialize_quiz(assessment: Assessment, db: Session) -> dict:
@@ -935,6 +1314,118 @@ async def get_teacher_students(
 
     results.sort(key=lambda item: item["full_name"].lower())
     return results
+
+
+@router.post("/students/advisor/ask")
+async def ask_teacher_student_advisor(
+    payload: TeacherStudentChatRequest,
+    user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db),
+):
+    snapshot = _build_teacher_student_snapshot(
+        db=db,
+        teacher_id=user.id,
+        student_id=payload.student_id,
+        course_id=payload.course_id,
+    )
+
+    local_answer = _answer_teacher_student_question(snapshot, payload.message)
+    gemini_answer = await _ask_gemini_teacher_advisor(payload.message, snapshot)
+    answer = gemini_answer or local_answer
+    source = "gemini" if gemini_answer else "local"
+
+    _save_teacher_chat_history(
+        db,
+        teacher_id=user.id,
+        student_id=payload.student_id,
+        course_id=payload.course_id,
+        message=payload.message,
+        response=answer,
+        response_source=source,
+        request_type="chat",
+    )
+
+    return {
+        "answer": answer,
+        "source": source,
+        "student": snapshot.get("student"),
+        "teacher_scope": snapshot.get("teacher_scope"),
+        "courses": snapshot.get("courses"),
+        "recent_quizzes": snapshot.get("recent_quizzes"),
+        "suggested_questions": [
+            "Sinh viên này đang có rủi ro gì?",
+            "Nên can thiệp thế nào trong 1 tuần tới?",
+            "Điểm yếu chính hiện tại là gì?",
+        ],
+    }
+
+
+@router.get("/students/{student_id}/advisor/history")
+async def get_teacher_student_advisor_history(
+    student_id: int,
+    course_id: int | None = Query(default=None),
+    limit: int = Query(default=60, ge=1, le=200),
+    user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db),
+):
+    # Validate teacher has access to this student in teacher scope.
+    _build_teacher_student_snapshot(
+        db=db,
+        teacher_id=user.id,
+        student_id=student_id,
+        course_id=course_id,
+    )
+
+    history_query = db.query(TeacherStudentChatHistory).filter(
+        TeacherStudentChatHistory.teacher_id == user.id,
+        TeacherStudentChatHistory.student_id == student_id,
+    )
+    if course_id is not None:
+        history_query = history_query.filter(TeacherStudentChatHistory.course_id == course_id)
+
+    rows = history_query.order_by(TeacherStudentChatHistory.created_at.desc()).limit(limit).all()
+    rows.reverse()
+
+    return {
+        "student_id": student_id,
+        "items": [_serialize_teacher_chat_history(row) for row in rows],
+    }
+
+
+@router.post("/students/advisor/plan-7-days")
+async def generate_teacher_intervention_plan(
+    payload: TeacherInterventionPlanRequest,
+    user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db),
+):
+    snapshot = _build_teacher_student_snapshot(
+        db=db,
+        teacher_id=user.id,
+        student_id=payload.student_id,
+        course_id=payload.course_id,
+    )
+    checklist = _build_7_day_checklist(snapshot)
+    student_name = (snapshot.get("student") or {}).get("full_name") or "sinh viên"
+    response_text = f"Đã tạo checklist can thiệp 7 ngày cho {student_name}."
+
+    _save_teacher_chat_history(
+        db,
+        teacher_id=user.id,
+        student_id=payload.student_id,
+        course_id=payload.course_id,
+        message="Tạo kế hoạch can thiệp 7 ngày",
+        response=response_text,
+        response_source="rule",
+        request_type="plan_7_days",
+        checklist=checklist,
+    )
+
+    return {
+        "student": snapshot.get("student"),
+        "teacher_scope": snapshot.get("teacher_scope"),
+        "checklist": checklist,
+        "message": response_text,
+    }
 
 
 @router.get("/pending-approvals")

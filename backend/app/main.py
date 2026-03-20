@@ -32,7 +32,7 @@ from app.models import (
     User, StudentProfile, TeacherProfile, LoginHistory,
     Course, Enrollment, Lesson, LessonProgress, Material, LessonComment, LessonCommentLike, Notification,
     Assessment, Submission, Question, GradeHistory, QuizResult,
-    LearningActivity, Recommendation, StudentSkillProfile
+    LearningActivity, Recommendation, StudentSkillProfile, TeacherStudentChatHistory
 )
 from app.models.user import UserRole
 from app.utils.security import get_password_hash

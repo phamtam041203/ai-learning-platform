@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Home, BookOpen, Users, FileText, BarChart3, 
+  Home, BookOpen, Users, FileText, BarChart3, MessageCircle,
   LogOut, Menu, X
 } from 'lucide-react';
 import './TeacherLayout.css';
@@ -20,6 +20,7 @@ const TeacherLayout = ({ children }) => {
     { path: '/teacher/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/teacher/content', icon: BookOpen, label: 'Khóa học' },
     { path: '/teacher/students', icon: Users, label: 'Học sinh' },
+    { path: '/teacher/student-advisor', icon: MessageCircle, label: 'AI Cố vấn SV' },
     { path: '/teacher/essays', icon: FileText, label: 'Chấm bài' },
     { path: '/teacher/analytics', icon: BarChart3, label: 'Thống kê' },
   ];

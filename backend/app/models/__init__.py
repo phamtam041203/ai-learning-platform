@@ -3,6 +3,7 @@ from .course import Course, Enrollment, Material, Lesson, LessonProgress, Course
 from .learning_activity import LearningActivity
 from .assessment import Assessment, Submission, Question, GradeHistory, QuizResult, AssessmentType, EssaySubmission, StudentSkillProfile
 from .recommendation import Recommendation
+from .teacher_chat import TeacherStudentChatHistory
 
 __all__ = [
     "User", "StudentProfile", "TeacherProfile", "UserRole", "LoginHistory",
@@ -11,5 +12,6 @@ __all__ = [
     "LearningActivity",
     "Assessment", "Submission", "Question", "GradeHistory", "QuizResult", "AssessmentType", "EssaySubmission",
     "StudentSkillProfile",
-    "Recommendation"
+    "Recommendation",
+    "TeacherStudentChatHistory"
 ]

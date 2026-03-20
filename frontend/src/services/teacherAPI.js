@@ -150,6 +150,31 @@ const teacherAPI = {
     });
   },
 
+  // Ask advisor about a student in teacher scope
+  askStudentAdvisor: async ({ student_id, message, course_id = null }) => {
+    return apiCall('/teacher/students/advisor/ask', {
+      method: 'POST',
+      body: JSON.stringify({ student_id, message, course_id })
+    });
+  },
+
+  // Fetch chat history for a specific student in teacher scope
+  getStudentAdvisorHistory: async (studentId, courseId = null, limit = 60) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (courseId) {
+      params.set('course_id', String(courseId));
+    }
+    return apiCall(`/teacher/students/${studentId}/advisor/history?${params.toString()}`);
+  },
+
+  // Generate 7-day intervention checklist
+  generate7DayInterventionPlan: async ({ student_id, course_id = null }) => {
+    return apiCall('/teacher/students/advisor/plan-7-days', {
+      method: 'POST',
+      body: JSON.stringify({ student_id, course_id })
+    });
+  },
+
   // Create lesson with file upload
   createLesson: async (lessonData) => {
     const formData = new FormData();
