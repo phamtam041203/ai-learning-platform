@@ -669,6 +669,29 @@ def _answer_teacher_student_question(snapshot: dict, question: str) -> str:
     )
 
 
+def _is_truncated_gemini_answer(answer: str | None) -> bool:
+    if not answer:
+        return True
+
+    text = answer.strip()
+    if len(text) < 40:
+        return True
+
+    low = text.lower()
+    trailing_fragments = (
+        ",", ":", "-", "(",
+        " là", " và", " nhưng", " mặc dù", " do", " ở", " trong", " vì", " của", " cho",
+    )
+    if low.endswith(trailing_fragments):
+        return True
+
+    # Require a proper sentence ending to reduce half-finished outputs.
+    if text[-1] not in ".!?":
+        return True
+
+    return False
+
+
 def _serialize_quiz(assessment: Assessment, db: Session) -> dict:
     questions = db.query(Question).filter(Question.assessment_id == assessment.id).order_by(Question.order, Question.id).all()
     lesson_id = _extract_lesson_id_from_assessment(assessment)
@@ -1331,8 +1354,13 @@ async def ask_teacher_student_advisor(
 
     local_answer = _answer_teacher_student_question(snapshot, payload.message)
     gemini_answer = await _ask_gemini_teacher_advisor(payload.message, snapshot)
-    answer = gemini_answer or local_answer
-    source = "gemini" if gemini_answer else "local"
+
+    if _is_truncated_gemini_answer(gemini_answer):
+        answer = local_answer
+        source = "local"
+    else:
+        answer = gemini_answer or local_answer
+        source = "gemini" if gemini_answer else "local"
 
     _save_teacher_chat_history(
         db,

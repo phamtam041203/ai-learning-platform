@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BookOpen, Users, FileText, CheckCircle, Clock, TrendingUp,
-  Award, BarChart3, Plus, Eye, Edit, Home, Settings, LogOut,
+  Award, BarChart3, MessageCircle, Plus, Eye, Edit, Home, Settings, LogOut,
   Bell, Search, Menu, X, ArrowLeft, AlertCircle
 } from 'lucide-react';
 import teacherAPI from '../../services/teacherAPI';
@@ -104,6 +104,10 @@ const DashboardPage = () => {
           <a href="/teacher/students" className="nav-item">
             <Users size={20} />
             <span>Học sinh</span>
+          </a>
+          <a href="/teacher/student-advisor" className="nav-item">
+            <MessageCircle size={20} />
+            <span>AI Cố vấn SV</span>
           </a>
           <a href="/teacher/essays" className="nav-item">
             <FileText size={20} />
