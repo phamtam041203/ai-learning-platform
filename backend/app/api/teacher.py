@@ -1463,6 +1463,39 @@ async def get_teacher_student_advisor_history(
     }
 
 
+@router.delete("/students/{student_id}/advisor/history")
+async def delete_teacher_student_advisor_history(
+    student_id: int,
+    course_id: int | None = Query(default=None),
+    user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db),
+):
+    # Validate teacher has access to this student in teacher scope.
+    _build_teacher_student_snapshot(
+        db=db,
+        teacher_id=user.id,
+        student_id=student_id,
+        course_id=course_id,
+    )
+
+    delete_query = db.query(TeacherStudentChatHistory).filter(
+        TeacherStudentChatHistory.teacher_id == user.id,
+        TeacherStudentChatHistory.student_id == student_id,
+    )
+    if course_id is not None:
+        delete_query = delete_query.filter(TeacherStudentChatHistory.course_id == course_id)
+
+    deleted_count = delete_query.delete(synchronize_session=False)
+    db.commit()
+
+    return {
+        "success": True,
+        "student_id": student_id,
+        "deleted_count": deleted_count,
+        "message": "Đã xóa lịch sử hội thoại AI của sinh viên được chọn",
+    }
+
+
 @router.post("/students/advisor/plan-7-days")
 async def generate_teacher_intervention_plan(
     payload: TeacherInterventionPlanRequest,

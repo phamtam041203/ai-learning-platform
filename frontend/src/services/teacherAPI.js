@@ -167,6 +167,18 @@ const teacherAPI = {
     return apiCall(`/teacher/students/${studentId}/advisor/history?${params.toString()}`);
   },
 
+  // Delete chat history for a specific student in teacher scope
+  deleteStudentAdvisorHistory: async (studentId, courseId = null) => {
+    const params = new URLSearchParams();
+    if (courseId) {
+      params.set('course_id', String(courseId));
+    }
+    const query = params.toString();
+    return apiCall(`/teacher/students/${studentId}/advisor/history${query ? `?${query}` : ''}`, {
+      method: 'DELETE'
+    });
+  },
+
   // Generate 7-day intervention checklist
   generate7DayInterventionPlan: async ({ student_id, course_id = null }) => {
     return apiCall('/teacher/students/advisor/plan-7-days', {

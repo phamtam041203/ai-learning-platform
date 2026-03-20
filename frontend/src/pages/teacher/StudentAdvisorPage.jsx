@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bot, ClipboardCheck, Loader2, Search, Send, User } from 'lucide-react';
+import { Bot, ClipboardCheck, Loader2, Search, Send, Trash2, User } from 'lucide-react';
 import TeacherLayout from '../../components/TeacherLayout';
 import teacherAPI from '../../services/teacherAPI';
 import './StudentAdvisorPage.css';
@@ -19,6 +19,7 @@ const StudentAdvisorPage = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [sending, setSending] = useState(false);
   const [planning, setPlanning] = useState(false);
+  const [clearingHistory, setClearingHistory] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -178,6 +179,40 @@ const StudentAdvisorPage = () => {
     }
   };
 
+  const clearHistory = async () => {
+    if (!selectedStudent || clearingHistory || loadingHistory || sending || planning) {
+      return;
+    }
+
+    const confirmClear = window.confirm(
+      `Bạn có chắc muốn xóa toàn bộ lịch sử hỏi AI của ${selectedStudent.full_name}?`
+    );
+    if (!confirmClear) {
+      return;
+    }
+
+    setClearingHistory(true);
+    try {
+      await teacherAPI.deleteStudentAdvisorHistory(selectedStudent.id);
+      setMessages([
+        {
+          role: 'assistant',
+          text: `Đã xóa lịch sử hội thoại AI của ${selectedStudent.full_name}. Bạn có thể bắt đầu cuộc trao đổi mới.`
+        }
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: `Không thể xóa lịch sử hội thoại: ${error.message}`
+        }
+      ]);
+    } finally {
+      setClearingHistory(false);
+    }
+  };
+
   return (
     <TeacherLayout>
       <div className="teacher-advisor-page">
@@ -236,15 +271,26 @@ const StudentAdvisorPage = () => {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              className="plan-btn"
-              disabled={!selectedStudent || planning || loadingHistory}
-              onClick={generatePlan}
-            >
-              {planning ? <Loader2 size={16} className="spin" /> : <ClipboardCheck size={16} />}
-              Tạo kế hoạch can thiệp 7 ngày
-            </button>
+            <div className="chat-actions">
+              <button
+                type="button"
+                className="clear-history-btn"
+                disabled={!selectedStudent || clearingHistory || loadingHistory || sending || planning}
+                onClick={clearHistory}
+              >
+                {clearingHistory ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
+                Xóa lịch sử
+              </button>
+              <button
+                type="button"
+                className="plan-btn"
+                disabled={!selectedStudent || planning || loadingHistory || clearingHistory}
+                onClick={generatePlan}
+              >
+                {planning ? <Loader2 size={16} className="spin" /> : <ClipboardCheck size={16} />}
+                Tạo kế hoạch can thiệp 7 ngày
+              </button>
+            </div>
           </header>
 
           <div className="quick-questions">
