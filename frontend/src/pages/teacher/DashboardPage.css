@@ -13,6 +13,10 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+.teacher-dashboard-layout.dark-mode {
+  background: #0f172a;
+}
+
 /* ===== SIDEBAR ===== */
 .dashboard-sidebar {
   width: 280px;
@@ -28,6 +32,11 @@
   z-index: 1000;
 }
 
+.teacher-dashboard-layout.dark-mode .dashboard-sidebar {
+  background: #111827;
+  border-right-color: #1f2937;
+}
+
 .dashboard-sidebar.closed {
   transform: translateX(-280px);
 }
@@ -35,6 +44,11 @@
 .sidebar-header {
   padding: 1.5rem;
   border-bottom: 1px solid #e2e8f0;
+}
+
+.teacher-dashboard-layout.dark-mode .sidebar-header,
+.teacher-dashboard-layout.dark-mode .sidebar-footer {
+  border-color: #1f2937;
 }
 
 .sidebar-header .logo {
@@ -70,9 +84,18 @@
   font-size: 0.95rem;
 }
 
+.teacher-dashboard-layout.dark-mode .nav-item {
+  color: #cbd5e1;
+}
+
 .nav-item:hover {
   background: #f1f5f9;
   color: #3b82f6;
+}
+
+.teacher-dashboard-layout.dark-mode .nav-item:hover {
+  background: #1e293b;
+  color: #93c5fd;
 }
 
 .nav-item.active {
@@ -113,6 +136,11 @@
   z-index: 100;
 }
 
+.teacher-dashboard-layout.dark-mode .dashboard-topbar {
+  background: #111827;
+  border-bottom-color: #1f2937;
+}
+
 .menu-toggle {
   display: none;
   background: transparent;
@@ -127,6 +155,14 @@
   background: #f1f5f9;
 }
 
+.teacher-dashboard-layout.dark-mode .menu-toggle {
+  color: #cbd5e1;
+}
+
+.teacher-dashboard-layout.dark-mode .menu-toggle:hover {
+  background: #1e293b;
+}
+
 .topbar-search {
   flex: 1;
   max-width: 500px;
@@ -137,6 +173,11 @@
   padding: 0.75rem 1rem;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
+}
+
+.teacher-dashboard-layout.dark-mode .topbar-search {
+  background: #1e293b;
+  border-color: #334155;
 }
 
 .topbar-search svg {
@@ -150,6 +191,10 @@
   outline: none;
   font-size: 0.95rem;
   color: #1e293b;
+}
+
+.teacher-dashboard-layout.dark-mode .topbar-search input {
+  color: #e2e8f0;
 }
 
 .topbar-search input::placeholder {
@@ -177,9 +222,20 @@
   color: #64748b;
 }
 
+.teacher-dashboard-layout.dark-mode .icon-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
 .icon-btn:hover {
   background: #f1f5f9;
   color: #3b82f6;
+}
+
+.teacher-dashboard-layout.dark-mode .icon-btn:hover {
+  background: #334155;
+  color: #93c5fd;
 }
 
 .icon-btn .badge {
@@ -204,6 +260,11 @@
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid #e2e8f0;
+}
+
+.teacher-dashboard-layout.dark-mode .user-menu {
+  background: #1e293b;
+  border-color: #334155;
 }
 
 .user-menu:hover {
@@ -234,6 +295,10 @@
   font-size: 0.9rem;
 }
 
+.teacher-dashboard-layout.dark-mode .user-name {
+  color: #e2e8f0;
+}
+
 .user-role {
   font-size: 0.8rem;
   color: #64748b;
@@ -244,6 +309,10 @@
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+}
+
+.teacher-dashboard-layout.dark-mode .dashboard-content {
+  background: #0f172a;
 }
 
 .welcome-section {
@@ -260,9 +329,17 @@
   margin-bottom: 0.5rem;
 }
 
+.teacher-dashboard-layout.dark-mode .welcome-text h1 {
+  color: #f1f5f9;
+}
+
 .welcome-text p {
   color: #64748b;
   font-size: 1rem;
+}
+
+.teacher-dashboard-layout.dark-mode .welcome-text p {
+  color: #94a3b8;
 }
 
 .btn-create-course {
@@ -304,6 +381,19 @@
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+}
+
+.teacher-dashboard-layout.dark-mode .stat-card {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.teacher-dashboard-layout.dark-mode .stat-label {
+  color: #94a3b8;
+}
+
+.teacher-dashboard-layout.dark-mode .stat-value {
+  color: #f1f5f9;
 }
 
 .stat-card::before {

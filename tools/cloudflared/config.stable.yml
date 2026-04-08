@@ -1,0 +1,7 @@
+tunnel: 1345eda6-4f18-4847-a8a3-e462df416ef7
+credentials-file: C:\Users\tamph\.cloudflared\1345eda6-4f18-4847-a8a3-e462df416ef7.json
+
+ingress:
+  - hostname: ptlearning.id.vn
+    service: http://localhost:80
+  - service: http_status:404

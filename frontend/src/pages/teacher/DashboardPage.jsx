@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   BookOpen, Users, FileText, CheckCircle, Clock, TrendingUp,
   Award, BarChart3, MessageCircle, Plus, Eye, Edit, Home, Settings, LogOut,
-  Bell, Search, Menu, X, ArrowLeft, AlertCircle
+  Bell, Search, Menu, Moon, Sun, X, ArrowLeft, AlertCircle
 } from 'lucide-react';
 import teacherAPI from '../../services/teacherAPI';
 import './DashboardPage.css';
@@ -15,10 +15,15 @@ const DashboardPage = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [courses, setCourses] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('teacher_theme') === 'dark');
 
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('teacher_theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
 
   const fetchDashboard = async () => {
     try {
@@ -45,7 +50,7 @@ const DashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="teacher-dashboard-layout">
+      <div className={`teacher-dashboard-layout ${isDarkMode ? 'dark-mode' : ''}`}>
         <div className="loading-container">
           <div className="loading-content">
             <div className="loading-spinner-modern">
@@ -69,7 +74,7 @@ const DashboardPage = () => {
 
   if (error) {
     return (
-      <div className="teacher-dashboard-layout">
+      <div className={`teacher-dashboard-layout ${isDarkMode ? 'dark-mode' : ''}`}>
         <div className="error-message">
           <AlertCircle size={48} />
           <p>{error}</p>
@@ -82,7 +87,7 @@ const DashboardPage = () => {
   const stats = dashboardData?.stats || {};
 
   return (
-    <div className="teacher-dashboard-layout">
+    <div className={`teacher-dashboard-layout ${isDarkMode ? 'dark-mode' : ''}`}>
       {/* Sidebar */}
       <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
@@ -145,6 +150,14 @@ const DashboardPage = () => {
           </div>
 
           <div className="topbar-actions">
+            <button
+              className="icon-btn"
+              onClick={() => setIsDarkMode((prev) => !prev)}
+              title={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+              type="button"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <button className="icon-btn">
               <Bell size={20} />
               <span className="badge">3</span>

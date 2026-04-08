@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, BookOpen, Users, FileText, BarChart3, MessageCircle,
-  LogOut, Menu, X
+  LogOut, Menu, Moon, Sun, X
 } from 'lucide-react';
 import './TeacherLayout.css';
 
@@ -10,6 +10,11 @@ const TeacherLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('teacher_theme') === 'dark');
+
+  useEffect(() => {
+    localStorage.setItem('teacher_theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -26,7 +31,7 @@ const TeacherLayout = ({ children }) => {
   ];
 
   return (
-    <div className="teacher-layout">
+    <div className={`teacher-layout ${isDarkMode ? 'dark-mode' : ''}`}>
       {/* Sidebar */}
       <aside className={`teacher-sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
         <div className="sidebar-header">
@@ -66,6 +71,14 @@ const TeacherLayout = ({ children }) => {
 
       {/* Main Content */}
       <main className="teacher-main">
+        <button
+          className="teacher-theme-toggle"
+          onClick={() => setIsDarkMode((prev) => !prev)}
+          title={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+          type="button"
+        >
+          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
         <button 
           className="sidebar-toggle"
           onClick={() => setSidebarOpen(!sidebarOpen)}

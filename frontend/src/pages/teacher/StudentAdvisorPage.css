@@ -7,12 +7,23 @@
   background: linear-gradient(180deg, #f4f7fb 0%, #eef3f8 100%);
 }
 
+.teacher-layout.dark-mode .teacher-advisor-page {
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+}
+
 .advisor-students-panel,
 .advisor-chat-panel {
   background: #ffffff;
   border: 1px solid #dde4ee;
   border-radius: 16px;
   box-shadow: 0 12px 30px rgba(29, 44, 72, 0.08);
+}
+
+.teacher-layout.dark-mode .advisor-students-panel,
+.teacher-layout.dark-mode .advisor-chat-panel {
+  background: #111827;
+  border-color: #1f2937;
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45);
 }
 
 .advisor-students-panel {
@@ -26,16 +37,28 @@
   border-bottom: 1px solid #eef2f7;
 }
 
+.teacher-layout.dark-mode .panel-header {
+  border-bottom-color: #1f2937;
+}
+
 .panel-header h2 {
   margin: 0;
   font-size: 1.08rem;
   color: #1d2b44;
 }
 
+.teacher-layout.dark-mode .panel-header h2 {
+  color: #e2e8f0;
+}
+
 .panel-header p {
   margin: 6px 0 0;
   color: #6b778c;
   font-size: 0.92rem;
+}
+
+.teacher-layout.dark-mode .panel-header p {
+  color: #94a3b8;
 }
 
 .panel-search {
@@ -49,12 +72,23 @@
   color: #70809b;
 }
 
+.teacher-layout.dark-mode .panel-search {
+  border-color: #334155;
+  background: #0f172a;
+  color: #94a3b8;
+}
+
 .panel-search input {
   flex: 1;
   border: none;
   outline: none;
   padding: 10px 0;
   font-size: 0.94rem;
+}
+
+.teacher-layout.dark-mode .panel-search input {
+  background: transparent;
+  color: #e2e8f0;
 }
 
 .students-list {
@@ -76,9 +110,19 @@
   cursor: pointer;
 }
 
+.teacher-layout.dark-mode .student-list-item {
+  border-color: #334155;
+  background: #0f172a;
+}
+
 .student-list-item.active {
   border-color: #3d78d8;
   background: #edf4ff;
+}
+
+.teacher-layout.dark-mode .student-list-item.active {
+  border-color: #60a5fa;
+  background: #1e293b;
 }
 
 .student-initial {
@@ -105,6 +149,10 @@
   text-overflow: ellipsis;
 }
 
+.teacher-layout.dark-mode .student-copy strong {
+  color: #e2e8f0;
+}
+
 .student-copy span {
   display: block;
   margin-top: 3px;
@@ -115,11 +163,20 @@
   text-overflow: ellipsis;
 }
 
+.teacher-layout.dark-mode .student-copy span {
+  color: #94a3b8;
+}
+
 .students-empty,
 .students-loading {
   margin: 12px 14px;
   color: #6f7e95;
   font-size: 0.92rem;
+}
+
+.teacher-layout.dark-mode .students-empty,
+.teacher-layout.dark-mode .students-loading {
+  color: #94a3b8;
 }
 
 .students-loading {
@@ -134,16 +191,22 @@
   min-height: 0;
 }
 
-.chat-header {
+.teacher-advisor-page .chat-header {
   padding: 16px 18px;
   border-bottom: 1px solid #eef2f7;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  background: #ffffff;
 }
 
-.chat-title {
+.teacher-layout.dark-mode .teacher-advisor-page .chat-header {
+  background: #111827;
+  border-bottom-color: #1f2937;
+}
+
+.teacher-advisor-page .chat-title {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -156,13 +219,21 @@
   color: #1f3251;
 }
 
+.teacher-layout.dark-mode .chat-title h1 {
+  color: #f1f5f9;
+}
+
 .chat-title p {
   margin: 4px 0 0;
   color: #667791;
   font-size: 0.9rem;
 }
 
-.plan-btn {
+.teacher-layout.dark-mode .chat-title p {
+  color: #94a3b8;
+}
+
+.teacher-advisor-page .plan-btn {
   border: 1px solid #ccdaef;
   background: #eef5ff;
   color: #2d4d84;
@@ -177,13 +248,13 @@
   white-space: nowrap;
 }
 
-.chat-actions {
+.teacher-advisor-page .chat-actions {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
-.clear-history-btn {
+.teacher-advisor-page .clear-history-btn {
   border: 1px solid #f0d2d2;
   background: #fff4f4;
   color: #8a3232;
@@ -196,14 +267,17 @@
   cursor: pointer;
   font-size: 0.86rem;
   white-space: nowrap;
+  width: auto;
+  min-width: 120px;
+  justify-content: center;
 }
 
-.clear-history-btn:disabled {
+.teacher-advisor-page .clear-history-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.plan-btn:disabled {
+.teacher-advisor-page .plan-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -239,6 +313,10 @@
   background: radial-gradient(circle at top right, #f6faff 0%, #ffffff 45%);
 }
 
+.teacher-layout.dark-mode .chat-messages {
+  background: radial-gradient(circle at top right, #1e293b 0%, #111827 45%);
+}
+
 .history-loading {
   display: inline-flex;
   align-items: center;
@@ -246,6 +324,10 @@
   color: #5f7291;
   font-size: 0.9rem;
   margin-bottom: 12px;
+}
+
+.teacher-layout.dark-mode .history-loading {
+  color: #94a3b8;
 }
 
 .chat-row {
@@ -270,6 +352,11 @@
   flex-shrink: 0;
 }
 
+.teacher-layout.dark-mode .chat-avatar {
+  background: #1e293b;
+  color: #93c5fd;
+}
+
 .chat-bubble {
   max-width: min(86%, 820px);
   border-radius: 12px;
@@ -279,6 +366,12 @@
   color: #26395a;
   line-height: 1.45;
   white-space: pre-wrap;
+}
+
+.teacher-layout.dark-mode .chat-bubble {
+  border-color: #334155;
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 .checklist-box {
@@ -295,10 +388,19 @@
   background: #f9fbff;
 }
 
+.teacher-layout.dark-mode .checklist-day {
+  border-color: #334155;
+  background: #1e293b;
+}
+
 .checklist-day h4 {
   margin: 0 0 6px;
   font-size: 0.88rem;
   color: #2a436f;
+}
+
+.teacher-layout.dark-mode .checklist-day h4 {
+  color: #bfdbfe;
 }
 
 .checklist-day ul {
@@ -312,9 +414,18 @@
   color: #304764;
 }
 
+.teacher-layout.dark-mode .checklist-day li {
+  color: #cbd5e1;
+}
+
 .chat-row.teacher .chat-bubble {
   background: #edf5ff;
   border-color: #c9dcfb;
+}
+
+.teacher-layout.dark-mode .chat-row.teacher .chat-bubble {
+  background: #1e3a5f;
+  border-color: #2d4d84;
 }
 
 .chat-bubble.typing {
@@ -328,6 +439,10 @@
   gap: 10px;
 }
 
+.teacher-layout.dark-mode .chat-input {
+  border-top-color: #1f2937;
+}
+
 .chat-input textarea {
   flex: 1;
   resize: none;
@@ -336,6 +451,12 @@
   padding: 10px;
   font-size: 0.94rem;
   outline: none;
+}
+
+.teacher-layout.dark-mode .chat-input textarea {
+  border-color: #334155;
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 .chat-input button {
@@ -377,12 +498,12 @@
     max-height: 300px;
   }
 
-  .chat-header {
+  .teacher-advisor-page .chat-header {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .chat-actions {
+  .teacher-advisor-page .chat-actions {
     width: 100%;
     flex-wrap: wrap;
   }

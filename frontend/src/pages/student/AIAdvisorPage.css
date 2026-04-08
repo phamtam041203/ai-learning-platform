@@ -143,22 +143,26 @@
   background: linear-gradient(135deg, #f83600 0%, #f9d423 100%);
 }
 
-.score-value {
+.score-card .score-value {
   font-size: 48px;
   font-weight: bold;
   line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-.score-label {
+.score-card .score-label {
   font-size: 18px;
   opacity: 0.9;
   margin-top: -10px;
+  color: rgba(255, 255, 255, 0.95);
 }
 
-.score-grade {
+.score-card .score-grade {
   font-size: 20px;
   margin-top: 10px;
   font-weight: 600;
+  color: #ffffff;
 }
 
 /* Stats Grid */
